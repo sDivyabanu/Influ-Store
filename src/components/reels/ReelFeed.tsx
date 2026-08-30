@@ -91,6 +91,10 @@ export function ReelFeed({ initialReels, initialCursor, fetchUrl, emptyState }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor]);
 
+  function removeReel(reelId: string) {
+    setReels((current) => current.filter((r) => r.id !== reelId));
+  }
+
   if (reels.length === 0 && !loading) {
     return <>{emptyState}</>;
   }
@@ -115,6 +119,7 @@ export function ReelFeed({ initialReels, initialCursor, fetchUrl, emptyState }: 
             isActive={activeId === reel.id}
             muted={muted}
             onToggleMute={() => setMuted((m) => !m)}
+            onDeleted={removeReel}
           />
         </div>
       ))}
