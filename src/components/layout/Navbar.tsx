@@ -5,23 +5,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/auth-context";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { CreateMenu } from "@/components/layout/CreateMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { Menu, X, Home, Compass, Search, ShoppingBag, PlusSquare, Bell, LogIn, UserPlus } from "lucide-react";
+import { Menu, X, Home, Compass, Search, ShoppingBag, Bell, LogIn, UserPlus, ImagePlus, Video } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+
+interface NavLinkDef {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge: string | null;
+}
+
+function isNavLinkActive(pathname: string, href: string): boolean {
+  return pathname === href || (href !== "/home" && pathname.startsWith(href));
+}
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
 
-  const navLinks = [
+  // "Create" renders as a dropdown (CreateMenu) rather than a plain link —
+  // spliced into this position when rendering the desktop nav below.
+  const navLinks: NavLinkDef[] = [
     { href: "/home", label: "Feed", icon: Home, badge: null },
     { href: "/explore", label: "Explore", icon: Compass, badge: null },
     { href: "/search", label: "Search", icon: Search, badge: null },
     { href: "/products", label: "Shop", icon: ShoppingBag, badge: "Soon" },
-    { href: "/create-post", label: "Create", icon: PlusSquare, badge: null },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
   ];
+  const createMenuIndex = 4; // after "Shop", before "Notifications"
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/80 dark:bg-black/80 backdrop-blur-xl transition-colors">
@@ -36,26 +50,28 @@ export function Navbar() {
 
         {/* DESKTOP NAVIGATION LINKS */}
         <div className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== "/home" && pathname.startsWith(link.href));
+          {navLinks.map((link, index) => {
+            const isActive = isNavLinkActive(pathname, link.href);
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "relative flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition duration-150",
-                  isActive
-                    ? "text-neutral-900 dark:text-white font-semibold bg-neutral-100 dark:bg-white/10"
-                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100/60 dark:hover:bg-white/5"
-                )}
-              >
-                <span>{link.label}</span>
-                {link.badge && (
-                  <span className="rounded-full bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
-                    {link.badge}
-                  </span>
-                )}
-              </Link>
+              <React.Fragment key={link.href}>
+                {index === createMenuIndex && <CreateMenu />}
+                <Link
+                  href={link.href}
+                  className={cn(
+                    "relative flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition duration-150",
+                    isActive
+                      ? "text-neutral-900 dark:text-white font-semibold bg-neutral-100 dark:bg-white/10"
+                      : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100/60 dark:hover:bg-white/5"
+                  )}
+                >
+                  <span>{link.label}</span>
+                  {link.badge && (
+                    <span className="rounded-full bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+                      {link.badge}
+                    </span>
+                  )}
+                </Link>
+              </React.Fragment>
             );
           })}
         </div>
@@ -153,6 +169,23 @@ export function Navbar() {
                 </Link>
               );
             })}
+
+            <Link
+              href="/create-post"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition"
+            >
+              <ImagePlus className="h-5 w-5 text-neutral-500" />
+              <span className="font-medium">Create Post</span>
+            </Link>
+            <Link
+              href="/create-reel"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 rounded-2xl px-4 py-3 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition"
+            >
+              <Video className="h-5 w-5 text-neutral-500" />
+              <span className="font-medium">Create Reel</span>
+            </Link>
 
             <div className="my-2 h-px bg-neutral-200 dark:bg-neutral-800" />
 

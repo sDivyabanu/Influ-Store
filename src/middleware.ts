@@ -16,6 +16,7 @@ const protectedRoutes = [
   "/saved",
   "/api/saved",
   "/create-post",
+  "/create-reel",
 ];
 
 // Auth routes where authenticated users should be redirected away
