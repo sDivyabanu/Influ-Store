@@ -245,6 +245,7 @@ async function main() {
       { postId: priyaPost2.id, userId: alex.id },
       { postId: alexPost1.id, userId: maya.id },
       { postId: alexPost1.id, userId: priya.id },
+      { postId: alexPost2.id, userId: priya.id },
       { postId: mayaPost3.id, userId: priya.id },
     ],
   });
