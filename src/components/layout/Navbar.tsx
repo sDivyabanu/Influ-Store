@@ -33,7 +33,7 @@ export function Navbar() {
     { href: "/reels", label: "Reels", icon: Clapperboard, badge: null },
     { href: "/explore", label: "Explore", icon: Compass, badge: null },
     { href: "/search", label: "Search", icon: Search, badge: null },
-    { href: "/products", label: "Shop", icon: ShoppingBag, badge: "Soon" },
+    { href: "/products", label: "Shop", icon: ShoppingBag, badge: null },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
   ];
   const createMenuIndex = 5; // after "Shop", before "Notifications"

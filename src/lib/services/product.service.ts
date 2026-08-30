@@ -30,7 +30,7 @@ export async function listProducts(
   const where: Prisma.ProductWhereInput = {
     status: ProductStatus.ACTIVE,
     ...(filters.category ? { category: filters.category } : {}),
-    ...(filters.sellerSlug ? { sellerProfile: { slug: filters.sellerSlug } } : {}),
+    ...(filters.sellerSlug ? { sellerProfile: { slug: filters.sellerSlug.toLowerCase() } } : {}),
     ...(filters.search ? { name: { contains: filters.search, mode: "insensitive" } } : {}),
     ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
       ? {
@@ -70,7 +70,7 @@ export async function listProducts(
 
 export async function getProductBySlug(slug: string): Promise<ProductDetailItem | null> {
   const product = await prisma.product.findUnique({
-    where: { slug },
+    where: { slug: slug.toLowerCase() },
     include: productDetailInclude(),
   });
   if (!product || product.status !== ProductStatus.ACTIVE) return null;

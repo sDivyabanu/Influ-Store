@@ -104,3 +104,14 @@ export async function requireMyStoreId(userId: string): Promise<string> {
   }
   return store.id;
 }
+
+/**
+ * Minimal lookup for deciding whether to show a "Store" tab on someone's
+ * profile and where it should link — used by the profile page, which
+ * only knows the viewed user's id, not their own. Returns nothing
+ * beyond the slug: no verification/admin data ever flows through here.
+ */
+export async function getStoreSlugByUserId(userId: string): Promise<string | null> {
+  const store = await prisma.sellerProfile.findUnique({ where: { userId }, select: { slug: true } });
+  return store?.slug ?? null;
+}
