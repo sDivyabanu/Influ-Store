@@ -7,7 +7,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { CreateMenu } from "@/components/layout/CreateMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { Menu, X, Home, Compass, Search, ShoppingBag, Bell, LogIn, UserPlus, ImagePlus, Video } from "lucide-react";
+import { Menu, X, Home, Compass, Search, ShoppingBag, Bell, LogIn, UserPlus, ImagePlus, Video, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 interface NavLinkDef {
@@ -30,12 +30,13 @@ export function Navbar() {
   // spliced into this position when rendering the desktop nav below.
   const navLinks: NavLinkDef[] = [
     { href: "/home", label: "Feed", icon: Home, badge: null },
+    { href: "/reels", label: "Reels", icon: Clapperboard, badge: null },
     { href: "/explore", label: "Explore", icon: Compass, badge: null },
     { href: "/search", label: "Search", icon: Search, badge: null },
     { href: "/products", label: "Shop", icon: ShoppingBag, badge: "Soon" },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
   ];
-  const createMenuIndex = 4; // after "Shop", before "Notifications"
+  const createMenuIndex = 5; // after "Shop", before "Notifications"
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/80 dark:bg-black/80 backdrop-blur-xl transition-colors">
