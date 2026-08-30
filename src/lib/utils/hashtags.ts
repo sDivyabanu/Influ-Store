@@ -7,10 +7,7 @@ const HASHTAG_PATTERN = /#([a-zA-Z0-9_]+)/g;
 
 /**
  * Splits caption/comment text into plain-text and hashtag segments for
- * safe rendering (no dangerouslySetInnerHTML). Hashtags are only styled
- * for now — full hashtag search/navigation ships in Phase 3, at which
- * point the "hashtag" segments returned here can be wrapped in links
- * without touching this parser.
+ * safe rendering (no dangerouslySetInnerHTML).
  */
 export function parseHashtagSegments(text: string): HashtagSegment[] {
   const segments: HashtagSegment[] = [];
@@ -31,4 +28,24 @@ export function parseHashtagSegments(text: string): HashtagSegment[] {
   }
 
   return segments;
+}
+
+/**
+ * Extracts normalized, unique lowercase hashtag names from text (without '#').
+ * Example: "Hello #Fashion #summer #FASHION!" -> ["fashion", "summer"]
+ */
+export function extractHashtags(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const regex = new RegExp(HASHTAG_PATTERN);
+  const tags = new Set<string>();
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    const rawTag = match[1];
+    if (rawTag) {
+      tags.add(rawTag.toLowerCase());
+    }
+  }
+
+  return Array.from(tags);
 }

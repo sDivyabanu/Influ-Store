@@ -16,7 +16,7 @@ function flattenZodErrors(error: ZodError): Record<string, string[]> {
  * Central error → HTTP response translator for API route handlers.
  * Keeps raw database/internal errors out of client-facing responses.
  */
-export function handleApiError(error: unknown, fallbackMessage: string) {
+export function handleApiError(error: unknown, fallbackMessage: string = "An unexpected error occurred.") {
   if (error instanceof ZodError) {
     const errors = flattenZodErrors(error);
     return NextResponse.json(

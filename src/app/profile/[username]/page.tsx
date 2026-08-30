@@ -6,6 +6,7 @@ import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listUserPosts } from "@/lib/services/post.service";
+import { isUserFollowing } from "@/lib/services/follow.service";
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -40,6 +41,13 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
           accountType: true,
         },
       },
+      _count: {
+        select: {
+          posts: true,
+          followers: true,
+          following: true,
+        },
+      },
     },
   });
 
@@ -50,18 +58,24 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const currentUser = await getCurrentUser();
   const isOwnProfile = currentUser?.id === user.id;
 
-  const [postCount, postsPage] = await Promise.all([
-    prisma.post.count({ where: { authorId: user.id } }),
+  const [postsPage, isFollowing] = await Promise.all([
     listUserPosts(user.id, currentUser?.id ?? null),
+    isUserFollowing(currentUser?.id ?? null, user.id),
   ]);
 
   const publicProfile = {
-    ...user,
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    createdAt: user.createdAt,
+    profile: user.profile,
     counts: {
-      posts: postCount,
-      followers: 0,
-      following: 0,
+      posts: user._count.posts,
+      followers: user._count.followers,
+      following: user._count.following,
     },
+    isFollowing,
+    isSelf: isOwnProfile,
   };
 
   return (

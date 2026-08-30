@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentUser } from "@/lib/auth/session";
+import { isUserFollowing } from "@/lib/services/follow.service";
 
 export async function GET(
   request: Request,
@@ -35,6 +37,13 @@ export async function GET(
             accountType: true,
           },
         },
+        _count: {
+          select: {
+            posts: true,
+            followers: true,
+            following: true,
+          },
+        },
       },
     });
 
@@ -48,18 +57,25 @@ export async function GET(
       );
     }
 
-    const postCount = await prisma.post.count({ where: { authorId: user.id } });
+    const currentUser = await getCurrentUser();
+    const isFollowing = await isUserFollowing(currentUser?.id ?? null, user.id);
 
     return NextResponse.json(
       {
         success: true,
         user: {
-          ...user,
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          createdAt: user.createdAt,
+          profile: user.profile,
           counts: {
-            posts: postCount,
-            followers: 0,
-            following: 0,
+            posts: user._count.posts,
+            followers: user._count.followers,
+            following: user._count.following,
           },
+          isFollowing,
+          isSelf: currentUser?.id === user.id,
         },
       },
       { status: 200 }

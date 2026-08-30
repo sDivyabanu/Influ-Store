@@ -5,15 +5,20 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { FollowButton } from "@/components/users/FollowButton";
+import { UserListModal } from "@/components/users/UserListModal";
 import { PublicUserProfile } from "@/types/profile";
 import { useAuth } from "@/features/auth/auth-context";
 import { Globe, Calendar, Settings, Sparkles } from "lucide-react";
 
 export function ProfileHeader({ userProfile }: { userProfile: PublicUserProfile }) {
   const { user: currentUser } = useAuth();
-  const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(userProfile.counts.followers);
+  const [followingCount, setFollowingCount] = useState(userProfile.counts.following);
+  const [modalState, setModalState] = useState<"followers" | "following" | null>(null);
 
-  const isOwnProfile = currentUser?.id === userProfile.id || currentUser?.username === userProfile.username;
+  const isOwnProfile =
+    currentUser?.id === userProfile.id || currentUser?.username?.toLowerCase() === userProfile.username.toLowerCase();
   const displayName = userProfile.profile?.displayName || userProfile.username;
   const bio = userProfile.profile?.bio;
   const website = userProfile.profile?.website;
@@ -72,15 +77,17 @@ export function ProfileHeader({ userProfile }: { userProfile: PublicUserProfile 
                     </Button>
                   </Link>
                 ) : (
-                  <Button
-                    variant={following ? "outline" : "primary"}
-                    size="sm"
-                    onClick={() => setFollowing(!following)}
-                    className="min-w-[100px]"
-                  >
-                    {following ? "Following" : "Follow"}
-                  </Button>
+                  <FollowButton
+                    targetUsername={userProfile.username}
+                    initialIsFollowing={userProfile.isFollowing}
+                    onFollowChange={(_, newFollowerCount, newFollowingCount) => {
+                      setFollowerCount(newFollowerCount);
+                      setFollowingCount(newFollowingCount);
+                    }}
+                    size="md"
+                  />
                 )}
+
               </div>
             </div>
 
@@ -115,7 +122,7 @@ export function ProfileHeader({ userProfile }: { userProfile: PublicUserProfile 
               </div>
             </div>
 
-            {/* STATS (Phase 1 Zero-state display) */}
+            {/* STATS (REAL SOCIAL GRAPH DATA) */}
             <div className="flex justify-center sm:justify-start gap-8 pt-4 border-t border-neutral-200 dark:border-neutral-800/80">
               <div>
                 <span className="font-bold text-neutral-900 dark:text-white">
@@ -123,22 +130,45 @@ export function ProfileHeader({ userProfile }: { userProfile: PublicUserProfile 
                 </span>{" "}
                 <span className="text-xs text-neutral-500">Posts</span>
               </div>
-              <div>
-                <span className="font-bold text-neutral-900 dark:text-white">
-                  {userProfile.counts.followers}
+
+              {/* FOLLOWERS BUTTON */}
+              <button
+                type="button"
+                onClick={() => setModalState("followers")}
+                className="group text-left transition hover:opacity-80"
+              >
+                <span className="font-bold text-neutral-900 dark:text-white group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition">
+                  {followerCount.toLocaleString()}
                 </span>{" "}
                 <span className="text-xs text-neutral-500">Followers</span>
-              </div>
-              <div>
-                <span className="font-bold text-neutral-900 dark:text-white">
-                  {userProfile.counts.following}
+              </button>
+
+              {/* FOLLOWING BUTTON */}
+              <button
+                type="button"
+                onClick={() => setModalState("following")}
+                className="group text-left transition hover:opacity-80"
+              >
+                <span className="font-bold text-neutral-900 dark:text-white group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition">
+                  {followingCount.toLocaleString()}
                 </span>{" "}
                 <span className="text-xs text-neutral-500">Following</span>
-              </div>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* FOLLOWERS / FOLLOWING MODAL */}
+      {modalState && (
+        <UserListModal
+          isOpen={!!modalState}
+          onClose={() => setModalState(null)}
+          title={modalState === "followers" ? "Followers" : "Following"}
+          username={userProfile.username}
+          type={modalState}
+        />
+      )}
     </div>
   );
 }

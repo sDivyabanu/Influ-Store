@@ -1,459 +1,264 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ExploreGrid } from "@/components/explore/ExploreGrid";
+import { UserCard } from "@/components/users/UserCard";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { FeedPost } from "@/types/post";
+import { UserCardItem } from "@/types/follow";
+import { HashtagItem } from "@/types/search";
+import { Search, Sparkles, TrendingUp, Compass, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 const categories = [
   "All",
   "Fashion",
+  "Minimal",
   "Beauty",
   "Lifestyle",
   "Tech",
   "Fitness",
   "Home",
-];
-
-const creators = [
-  {
-    name: "Maya Carter",
-    username: "@mayacarter",
-    followers: "248K",
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    name: "Alex Morgan",
-    username: "@alexmorgan",
-    followers: "184K",
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    name: "Sofia Lane",
-    username: "@sofialane",
-    followers: "312K",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    name: "Daniel Kim",
-    username: "@danielkim",
-    followers: "96K",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=80",
-  },
-];
-
-const posts = [
-  {
-    id: 1,
-    creator: "Maya Carter",
-    username: "@mayacarter",
-    caption: "Weekend essentials ✨",
-    category: "Fashion",
-    likes: "24.8K",
-    comments: "428",
-    image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 2,
-    creator: "Sofia Lane",
-    username: "@sofialane",
-    caption: "Simple things, better spaces.",
-    category: "Lifestyle",
-    likes: "18.2K",
-    comments: "312",
-    image:
-      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 3,
-    creator: "Alex Morgan",
-    username: "@alexmorgan",
-    caption: "The everyday setup.",
-    category: "Tech",
-    likes: "15.6K",
-    comments: "196",
-    image:
-      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 4,
-    creator: "Daniel Kim",
-    username: "@danielkim",
-    caption: "New week. New goals.",
-    category: "Fitness",
-    likes: "12.9K",
-    comments: "174",
-    image:
-      "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 5,
-    creator: "Maya Carter",
-    username: "@mayacarter",
-    caption: "Neutral tones are always a good idea.",
-    category: "Fashion",
-    likes: "21.3K",
-    comments: "284",
-    image:
-      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    id: 6,
-    creator: "Sofia Lane",
-    username: "@sofialane",
-    caption: "A little self-care goes a long way.",
-    category: "Beauty",
-    likes: "19.7K",
-    comments: "351",
-    image:
-      "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=85",
-  },
-];
-
-const products = [
-  {
-    name: "Aura Sneakers",
-    price: "$89",
-    category: "Fashion",
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
-  },
-  {
-    name: "Minimal Watch",
-    price: "$129",
-    category: "Accessories",
-    image:
-      "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=700&q=80",
-  },
-  {
-    name: "Essential Hoodie",
-    price: "$64",
-    category: "Fashion",
-    image:
-      "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=700&q=80",
-  },
+  "OOTD",
 ];
 
 export default function ExplorePage() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("All");
-  const [following, setFollowing] = useState<string[]>([]);
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [trendingTags, setTrendingTags] = useState<HashtagItem[]>([]);
+  const [suggestedCreators, setSuggestedCreators] = useState<UserCardItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredPosts =
-    activeCategory === "All"
-      ? posts
-      : posts.filter((post) => post.category === activeCategory);
+  // Initial load: explore posts, trending hashtags, and suggested creators
+  useEffect(() => {
+    async function loadExploreData() {
+      setIsLoading(true);
+      try {
+        const [postsRes, tagsRes, creatorsRes] = await Promise.all([
+          fetch("/api/explore?limit=16"),
+          fetch("/api/hashtags/trending?limit=6"),
+          fetch("/api/suggestions?limit=4"),
+        ]);
 
-  const toggleFollow = (creator: string) => {
-    setFollowing((current) =>
-      current.includes(creator)
-        ? current.filter((name) => name !== creator)
-        : [...current, creator]
-    );
+        const [postsData, tagsData, creatorsData] = await Promise.all([
+          postsRes.json(),
+          tagsRes.json(),
+          creatorsRes.json(),
+        ]);
+
+        if (postsRes.ok && postsData.success) {
+          setPosts(postsData.posts);
+          setNextCursor(postsData.nextCursor);
+        }
+        if (tagsRes.ok && tagsData.success) {
+          setTrendingTags(tagsData.hashtags);
+        }
+        if (creatorsRes.ok && creatorsData.success) {
+          setSuggestedCreators(creatorsData.users);
+        }
+      } catch {
+        // Fallback gracefully
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadExploreData();
+  }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
-  const toggleLike = (id: number) => {
-    setLikedPosts((current) =>
-      current.includes(id)
-        ? current.filter((postId) => postId !== id)
-        : [...current, id]
-    );
-  };
 
   return (
     <main className="min-h-screen flex flex-col bg-neutral-50 dark:bg-black text-neutral-900 dark:text-white transition-colors">
       <Navbar />
 
-      <div className="flex-1 pt-12">
+      <div className="flex-1 pt-20">
+        {/* HERO EXPLORE HEADER */}
+        <section className="relative overflow-hidden px-6 pb-12 pt-12 lg:px-10 lg:pt-16">
+          <div className="absolute left-1/2 top-0 h-[400px] w-[400px] -translate-x-1/2 rounded-full bg-fuchsia-500/10 blur-[130px] pointer-events-none" />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden px-6 pb-16 pt-16 lg:px-10 lg:pt-24">
-        <div className="absolute left-1/2 top-0 h-[450px] w-[450px] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[140px]" />
-
-        <div className="relative mx-auto max-w-7xl">
-          <p className="mb-4 text-sm uppercase tracking-[0.3em] text-fuchsia-400">
-            Explore
-          </p>
-
-          <h1 className="max-w-4xl text-5xl font-bold tracking-tight sm:text-7xl">
-            Find what
-            <br />
-            <span className="bg-gradient-to-r from-fuchsia-400 via-pink-400 to-orange-300 bg-clip-text text-transparent">
-              inspires you.
-            </span>
-          </h1>
-
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-400">
-            Discover creators, ideas, trends and products curated by the
-            Influstore community.
-          </p>
-
-          {/* SEARCH */}
-          <div className="mt-10 max-w-2xl">
-            <div className="flex items-center rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur-xl">
-              <span className="mr-3 text-gray-500">⌕</span>
-
-              <input
-                type="text"
-                placeholder="Search creators, trends, products..."
-                className="w-full bg-transparent text-white outline-none placeholder:text-gray-600"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="border-y border-white/10 px-6 py-5 lg:px-10">
-        <div className="mx-auto flex max-w-7xl gap-3 overflow-x-auto pb-1">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-medium transition ${
-                activeCategory === category
-                  ? "bg-white text-black"
-                  : "border border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* TRENDING CREATORS */}
-      <section className="px-6 py-16 lg:px-10">
-        <div className="mx-auto max-w-7xl">
-
-          <div className="mb-8 flex items-end justify-between">
-            <div>
-              <p className="mb-2 text-sm uppercase tracking-[0.25em] text-fuchsia-400">
-                Creators
+          <div className="relative mx-auto max-w-7xl">
+            <div className="flex items-center gap-2 mb-3">
+              <Compass className="h-4 w-4 text-fuchsia-500" />
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-500">
+                Explore Discovery
               </p>
-
-              <h2 className="text-3xl font-bold sm:text-4xl">
-                People to discover
-              </h2>
             </div>
 
-            <button className="hidden text-sm text-gray-500 transition hover:text-white sm:block">
-              View all →
-            </button>
-          </div>
+            <h1 className="max-w-4xl text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-neutral-900 dark:text-white">
+              Find what{" "}
+              <span className="bg-gradient-to-r from-fuchsia-500 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+                inspires you.
+              </span>
+            </h1>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {creators.map((creator) => {
-              const isFollowing = following.includes(creator.name);
-
-              return (
-                <div
-                  key={creator.name}
-                  className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.06]"
-                >
-                  <div className="flex items-center gap-4">
-
-                    <img
-                      src={creator.image}
-                      alt={creator.name}
-                      className="h-16 w-16 rounded-full object-cover"
-                    />
-
-                    <div className="min-w-0">
-                      <h3 className="truncate font-semibold">
-                        {creator.name}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        {creator.username}
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-600">
-                        {creator.followers} followers
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => toggleFollow(creator.name)}
-                    className={`mt-5 w-full rounded-xl py-2.5 text-sm font-medium transition ${
-                      isFollowing
-                        ? "border border-white/10 bg-white/5 text-white"
-                        : "bg-white text-black hover:bg-gray-100"
-                    }`}
-                  >
-                    {isFollowing ? "Following" : "Follow"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* COMMUNITY POSTS */}
-      <section className="px-6 pb-20 lg:px-10">
-        <div className="mx-auto max-w-7xl">
-
-          <div className="mb-10">
-            <p className="mb-2 text-sm uppercase tracking-[0.25em] text-fuchsia-400">
-              Community
+            <p className="mt-4 max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
+              Discover creators, trending styles, curated aesthetics, and real products from the Influstore community.
             </p>
 
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              Trending right now
-            </h2>
-          </div>
+            {/* QUICK SEARCH BAR */}
+            <form onSubmit={handleSearchSubmit} className="mt-8 max-w-2xl">
+              <div className="relative flex items-center rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-neutral-900/80 p-2 shadow-sm focus-within:border-fuchsia-500 focus-within:ring-4 focus-within:ring-fuchsia-500/10 transition">
+                <span className="pl-3 text-neutral-400">
+                  <Search className="h-5 w-5" />
+                </span>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.map((post) => {
-              const liked = likedPosts.includes(post.id);
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search creators, hashtags, keywords..."
+                  className="w-full bg-transparent px-3 py-2 text-sm text-neutral-900 dark:text-white outline-none placeholder:text-neutral-400"
+                />
 
-              return (
-                <article
-                  key={post.id}
-                  className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-950"
+                <Link
+                  href={searchQuery.trim() ? `/search?q=${encodeURIComponent(searchQuery.trim())}` : "/search"}
+                  className="rounded-xl bg-neutral-900 dark:bg-white px-5 py-2 text-xs font-semibold text-white dark:text-black hover:scale-105 transition"
                 >
-
-                  {/* POST IMAGE */}
-                  <div className="relative aspect-[4/5] overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={post.caption}
-                      className="h-full w-full object-cover transition duration-700 hover:scale-105"
-                    />
-
-                    <div className="absolute left-4 top-4 rounded-full bg-black/60 px-3 py-1.5 text-xs backdrop-blur">
-                      {post.category}
-                    </div>
-                  </div>
-
-                  {/* POST CONTENT */}
-                  <div className="p-5">
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-400 text-xs font-bold">
-                        {post.creator.charAt(0)}
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-medium">
-                          {post.creator}
-                        </p>
-
-                        <p className="text-xs text-gray-600">
-                          {post.username}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="mt-4 text-sm text-gray-300">
-                      {post.caption}
-                    </p>
-
-                    <div className="mt-5 flex items-center gap-5">
-                      <button
-                        onClick={() => toggleLike(post.id)}
-                        className={`text-sm transition ${
-                          liked
-                            ? "text-fuchsia-400"
-                            : "text-gray-500 hover:text-white"
-                        }`}
-                      >
-                        {liked ? "♥" : "♡"}{" "}
-                        {liked ? "Liked" : post.likes}
-                      </button>
-
-                      <button className="text-sm text-gray-500 transition hover:text-white">
-                        ♡ {post.comments}
-                      </button>
-
-                      <button className="ml-auto text-sm text-gray-500 transition hover:text-white">
-                        Share
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                  Search
+                </Link>
+              </div>
+            </form>
           </div>
+        </section>
 
-          {filteredPosts.length === 0 && (
-            <div className="rounded-3xl border border-white/10 py-20 text-center">
-              <p className="text-gray-500">
-                No posts found in this category.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* FEATURED PRODUCTS */}
-      <section className="border-t border-white/10 px-6 py-20 lg:px-10">
-        <div className="mx-auto max-w-7xl">
-
-          <div className="mb-10 flex items-end justify-between">
-            <div>
-              <p className="mb-2 text-sm uppercase tracking-[0.25em] text-orange-300">
-                Shop the trend
-              </p>
-
-              <h2 className="text-3xl font-bold sm:text-4xl">
-                Products people love
-              </h2>
-            </div>
-
-            <Link
-              href="/products"
-              className="hidden text-sm text-gray-500 transition hover:text-white sm:block"
-            >
-              View shop →
-            </Link>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-            {products.map((product) => (
-              <Link
-                href="/products"
-                key={product.name}
-                className="group overflow-hidden rounded-3xl bg-zinc-900"
+        {/* CATEGORY FILTER TABS */}
+        <section className="border-y border-neutral-200 dark:border-neutral-800 bg-white/40 dark:bg-neutral-950/40 px-6 py-4 lg:px-10 sticky top-20 z-30 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl gap-2.5 overflow-x-auto pb-1 no-scrollbar">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={cn(
+                  "shrink-0 rounded-full px-5 py-2 text-xs font-semibold transition",
+                  activeCategory === category
+                    ? "bg-neutral-900 text-white dark:bg-white dark:text-black shadow-sm"
+                    : "border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/60 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                )}
               >
-                <div className="aspect-[4/5] overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-5">
-                  <div>
-                    <p className="text-xs text-gray-600">
-                      {product.category}
-                    </p>
-
-                    <h3 className="mt-1 font-semibold">
-                      {product.name}
-                    </h3>
-                  </div>
-
-                  <span className="font-medium">
-                    {product.price}
-                  </span>
-                </div>
-              </Link>
+                {category}
+              </button>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
+        {/* TRENDING HASHTAGS & CREATORS ROW */}
+        {(trendingTags.length > 0 || suggestedCreators.length > 0) && (
+          <section className="px-6 py-10 lg:px-10">
+            <div className="mx-auto max-w-7xl grid gap-8 lg:grid-cols-[1fr_360px]">
+              {/* TRENDING HASHTAGS */}
+              {trendingTags.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-fuchsia-500" />
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                        Trending Hashtags
+                      </h2>
+                    </div>
+
+                    <Link
+                      href="/search?type=hashtags&q=all"
+                      className="text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                    >
+                      View all →
+                    </Link>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {trendingTags.map((tag) => (
+                      <Link
+                        key={tag.id}
+                        href={`/hashtag/${tag.name}`}
+                        className="flex items-center justify-between p-3.5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/60 hover:border-fuchsia-500/50 hover:bg-fuchsia-500/5 transition text-left group"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <span className="font-bold text-xs sm:text-sm text-neutral-900 dark:text-white group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 truncate block">
+                            #{tag.name}
+                          </span>
+                          <span className="text-[11px] text-neutral-500">
+                            {tag.postCount} post{tag.postCount === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 text-neutral-400 group-hover:text-fuchsia-500 shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SUGGESTED CREATORS */}
+              {suggestedCreators.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-fuchsia-500" />
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                      Featured Creators
+                    </h2>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {suggestedCreators.map((creator) => (
+                      <UserCard
+                        key={creator.id}
+                        user={creator}
+                        showBio={false}
+                        showCounts={true}
+                        className="p-3"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* EXPLORE DISCOVERY GRID */}
+        <section className="px-6 pb-24 pt-4 lg:px-10">
+          <div className="mx-auto max-w-7xl space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                  {activeCategory === "All" ? "Popular on Influ-Store" : `${activeCategory} Posts`}
+                </h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Ranked by community engagement and recent activity
+                </p>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 sm:gap-5">
+                {[...Array(8)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-2xl sm:rounded-3xl" />
+                ))}
+              </div>
+            ) : (
+              <ExploreGrid
+                initialPosts={posts}
+                initialCursor={nextCursor}
+                category={activeCategory}
+              />
+            )}
+          </div>
+        </section>
       </div>
+
       <Footer />
     </main>
   );
-}
+}

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/auth-context";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { Menu, X, Home, Compass, ShoppingBag, PlusSquare, Bell, LogIn, UserPlus } from "lucide-react";
+import { Menu, X, Home, Compass, Search, ShoppingBag, PlusSquare, Bell, LogIn, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 export function Navbar() {
@@ -16,7 +16,8 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/home", label: "Feed", icon: Home, badge: null },
-    { href: "/explore", label: "Explore", icon: Compass, badge: "Soon" },
+    { href: "/explore", label: "Explore", icon: Compass, badge: null },
+    { href: "/search", label: "Search", icon: Search, badge: null },
     { href: "/products", label: "Shop", icon: ShoppingBag, badge: "Soon" },
     { href: "/create-post", label: "Create", icon: PlusSquare, badge: null },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
@@ -36,7 +37,7 @@ export function Navbar() {
         {/* DESKTOP NAVIGATION LINKS */}
         <div className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive = pathname === link.href || (link.href !== "/home" && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
@@ -61,6 +62,14 @@ export function Navbar() {
 
         {/* DESKTOP ACTIONS */}
         <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/search"
+            aria-label="Search"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-300 dark:border-neutral-800/80 bg-neutral-100/80 dark:bg-neutral-900/80 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white transition hover:scale-105"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
+
           <ThemeToggle />
 
           {isLoading ? (
@@ -98,6 +107,14 @@ export function Navbar() {
 
         {/* MOBILE MENU TOGGLE */}
         <div className="flex items-center gap-2 md:hidden">
+          <Link
+            href="/search"
+            aria-label="Search"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-neutral-300 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300"
+          >
+            <Search className="h-4 w-4" />
+          </Link>
+
           <ThemeToggle />
 
           <button
@@ -147,6 +164,13 @@ export function Navbar() {
                   className="flex items-center gap-3 rounded-2xl px-4 py-3 text-neutral-900 dark:text-white font-medium hover:bg-neutral-100 dark:hover:bg-white/10"
                 >
                   <span>My Profile (@{user.username})</span>
+                </Link>
+                <Link
+                  href="/saved"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-3 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-white/10"
+                >
+                  <span>Saved Posts</span>
                 </Link>
                 <Link
                   href="/settings/profile"

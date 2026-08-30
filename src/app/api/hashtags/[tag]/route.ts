@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getFeed, FeedMode } from "@/lib/services/feed.service";
+import { getHashtagPosts } from "@/lib/services/hashtag.service";
 import { cursorPaginationSchema } from "@/lib/validations/pagination.schema";
 import { handleApiError } from "@/lib/api/handle-error";
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ tag: string }> }
+) {
   try {
+    const { tag } = await params;
     const user = await getCurrentUser();
 
     const { searchParams } = new URL(request.url);
@@ -14,21 +18,23 @@ export async function GET(request: Request) {
       limit: searchParams.get("limit") ?? undefined,
     });
 
-    const rawMode = searchParams.get("mode");
-    const mode: FeedMode = rawMode === "discover" ? "discover" : "following";
+    const result = await getHashtagPosts(
+      tag,
+      user?.id ?? null,
+      cursor,
+      limit
+    );
 
-    const page = await getFeed(user?.id ?? null, cursor, limit, mode);
     return NextResponse.json(
       {
         success: true,
-        posts: page.items,
-        nextCursor: page.nextCursor,
-        mode: page.mode,
-        isFollowingEmpty: page.isFollowingEmpty,
+        hashtag: result.hashtag,
+        posts: result.posts.items,
+        nextCursor: result.posts.nextCursor,
       },
       { status: 200 }
     );
   } catch (error) {
-    return handleApiError(error, "Failed to load feed.");
+    return handleApiError(error, "Failed to load hashtag posts.");
   }
 }
