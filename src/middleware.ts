@@ -17,7 +17,18 @@ const protectedRoutes = [
   "/api/saved",
   "/create-post",
   "/create-reel",
+  "/seller",
+  "/api/seller",
+  "/admin",
+  "/api/admin",
 ];
+
+// Route prefixes that require the ADMIN role, on top of authentication.
+// This is a fast UX redirect ONLY — the authoritative check is
+// requireAdmin() (src/lib/auth/admin.ts), which every admin page/route
+// re-verifies server-side against the database. Never rely on this
+// middleware check alone: the JWT's role claim can be up to 7 days stale.
+const adminOnlyRoutes = ["/admin", "/api/admin"];
 
 // Auth routes where authenticated users should be redirected away
 const authRoutes = ["/login", "/register", "/signup"];
@@ -27,11 +38,13 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
   let isAuthenticated = false;
+  let role: string | undefined;
 
   if (sessionCookie) {
     try {
-      await jwtVerify(sessionCookie, getAuthSecret());
+      const { payload } = await jwtVerify(sessionCookie, getAuthSecret());
       isAuthenticated = true;
+      role = typeof payload.role === "string" ? payload.role : undefined;
     } catch {
       isAuthenticated = false;
     }
@@ -56,6 +69,18 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 3. Authenticated but non-admin users hitting /admin* pages get bounced
+  // immediately (nice UX, avoids a flash of admin UI). /api/admin/* is left
+  // to return its own 403 from requireAdmin() so callers get a JSON body.
+  if (
+    isAuthenticated &&
+    role !== "ADMIN" &&
+    adminOnlyRoutes.some((route) => pathname.startsWith(route)) &&
+    !pathname.startsWith("/api/")
+  ) {
+    return NextResponse.redirect(new URL("/home", request.url));
   }
 
   return NextResponse.next();

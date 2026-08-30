@@ -23,6 +23,20 @@ enum MediaType {
   IMAGE
 }
 
+enum SellerApplicationStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SellerDocumentType {
+  IDENTITY_PROOF
+  BUSINESS_PROOF
+  ADDRESS_PROOF
+  OTHER
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -51,6 +65,10 @@ model User {
   reelComments     ReelComment[]
   reelCommentLikes ReelCommentLike[]
   savedReels       SavedReel[]
+
+  // Phase 5 Seller verification relations
+  sellerApplication          SellerApplication?  @relation("UserSellerApplication")
+  reviewedSellerApplications SellerApplication[] @relation("SellerApplicationReviewer")
 
   @@index([username])
   @@index([email])
@@ -328,4 +346,67 @@ model ReelHashtag {
   @@index([reelId])
   @@index([hashtagId])
   @@map("reel_hashtags")
+}
+
+// ==================================================
+// Phase 5: Seller application + admin verification
+// ==================================================
+
+model SellerApplication {
+  id     String @id @default(cuid())
+  userId String @unique // one application row per user — prevents duplicate/concurrent applications
+
+  // Required-eventually fields default to "" so a bare DRAFT row can be
+  // created on first save and filled in incrementally step-by-step;
+  // real completeness is enforced by sellerApplicationSubmitSchema right
+  // before the DRAFT/REJECTED -> PENDING transition, not by the DB.
+  businessName String  @default("")
+  businessType String  @default("")
+  description  String? @db.Text
+
+  contactEmail String @default("")
+  contactPhone String @default("")
+
+  addressLine String @default("")
+  city        String @default("")
+  state       String @default("")
+  country     String @default("")
+  postalCode  String @default("")
+
+  status          SellerApplicationStatus @default(DRAFT)
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?                 @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User                         @relation("UserSellerApplication", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer  User?                        @relation("SellerApplicationReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  documents SellerVerificationDocument[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([reviewedBy])
+  @@map("seller_applications")
+}
+
+model SellerVerificationDocument {
+  id               String             @id @default(cuid())
+  applicationId    String
+  type             SellerDocumentType
+  // Private object storage key ONLY — never a public URL. Reads happen
+  // exclusively through short-lived admin-authorized signed URLs; see
+  // src/lib/storage/private-document-storage.interface.ts.
+  storageKey       String
+  originalFilename String
+  mimeType         String
+  fileSize         Int
+  createdAt        DateTime           @default(now())
+
+  application SellerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("seller_verification_documents")
 }

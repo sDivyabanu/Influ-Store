@@ -44,3 +44,7 @@ next-env.d.ts
 
 # local dev media storage fallback (see src/lib/storage/local-storage.service.ts)
 /public/uploads/
+
+# local dev PRIVATE document storage fallback — never publicly served;
+# see src/lib/storage/local-private-document-storage.service.ts
+/private-uploads/
