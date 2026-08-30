@@ -24,5 +24,3 @@ export const FEED_PAGE_SIZE = 10;
 export const PROFILE_GRID_PAGE_SIZE = 24;
 export const COMMENTS_PAGE_SIZE = 20;
 export const REPLIES_PAGE_SIZE = 10;
-
-export const HASHTAG_REGEX = /#([a-zA-Z0-9_]+)/g;
