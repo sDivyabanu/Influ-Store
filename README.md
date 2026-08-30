@@ -20,6 +20,7 @@ A modern **social-commerce platform** that brings creators, trends, products, an
 
 <a href="#-about-influstore">About</a> •
 <a href="#-phase-1-architecture">Phase 1 Architecture</a> •
+<a href="#-phase-2-social-feed--posts">Phase 2: Social Feed & Posts</a> •
 <a href="#-tech-stack">Tech Stack</a> •
 <a href="#-getting-started">Getting Started</a> •
 <a href="#-database--prisma">Database & Prisma</a> •
@@ -94,6 +95,28 @@ src/
 
 ---
 
+## 📸 Phase 2: Social Feed & Posts
+
+Phase 2 completes the first full social-content vertical: create a post → see it in the feed → like, comment, reply, save, share → view it on your profile → edit or delete it.
+
+**Database models added** (`prisma/schema.prisma`): `Post`, `PostMedia`, `Like`, `Comment` (with a self-relation `parentId` for one-level-deep reply threading), `CommentLike`, `SavedPost`. Likes/saves/comment-likes are enforced unique per `(userId, postId)` / `(userId, commentId)` at the database level, and deleting a post cascades to its media, likes, comments, and saves.
+
+**Media & storage**: production uploads follow the browser → presigned-URL → S3 flow described in [Pending AWS Configuration](#-pending-aws-configuration). While `AWS_*` env vars are empty, `getStorageService()` (`src/lib/storage/index.ts`) transparently falls back to `LocalStorageService`, which writes real files to `public/uploads/` (gitignored) so image posts work end-to-end in local development — no fake URLs, no base64 in Postgres. Switching to S3 in production requires only setting the `AWS_*` variables; no application code changes.
+
+**Feed & pagination**: `/api/feed` and `/api/users/[username]/posts` are cursor-paginated (`?cursor=`, capped `limit`), returning `{ posts, nextCursor }`. The home feed shows recent public posts newest-first — a deliberately simple Phase 2 strategy (`src/lib/services/feed.service.ts`) that Phase 3's following-based ranking can replace without touching the UI or API contract. The feed and saved-posts pages use `IntersectionObserver`-driven infinite scroll with a loading skeleton, retry-on-failure, and an end-of-feed state.
+
+**New routes**: `/create-post` (image upload, multi-photo carousel, caption with live character count), `/post/[postId]` (desktop split media|comments layout, mobile stacked, 404 for unknown/deleted posts), `/saved` (private — only ever queries the session owner's own saved posts, never exposed on another user's public profile), and a real posts grid on `/profile/[username]`.
+
+**New API endpoints**: `POST /api/posts`, `GET/PATCH/DELETE /api/posts/[postId]`, `POST/DELETE /api/posts/[postId]/like`, `POST/DELETE /api/posts/[postId]/save`, `GET/POST /api/posts/[postId]/comments`, `DELETE /api/comments/[commentId]`, `POST/DELETE /api/comments/[commentId]/like`, `GET /api/comments/[commentId]/replies`, `GET /api/feed`, `GET /api/saved`, `GET /api/users/[username]/posts`, and the two-step media upload `POST /api/posts/media/presign` + `POST /api/posts/media/local-upload`.
+
+**Authorization**: every mutation re-derives the author from the session (never trusts a client-supplied `userId`); edit/delete require `post.authorId === session.userId`; a post's owner may additionally delete comments left on their own post (documented moderation policy — see `src/lib/services/comment.service.ts`); uploaded media keys are verified to live under the authenticated user's own folder before a post can reference them.
+
+**Seed data**: `npm run prisma:seed` now also creates 7 demo posts (single-image and carousel) across the three Phase 1 users, with comments, one-level replies, comment likes, post likes, and saved-post relationships. The social portion of the script clears and recreates itself on every run, so it's safe to re-seed.
+
+**Not in Phase 2** (by design — see the roadmap): Follow/Unfollow, a personalized following feed, hashtag search/discovery, Explore recommendations, Reels/video posts, and full report/moderation tooling. The "Report" post-menu action and hashtag styling are UI-only stubs prepared for the phases that implement them.
+
+---
+
 ## 💻 Tech Stack
 
 - **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
@@ -122,8 +145,8 @@ src/
 git clone https://github.com/sDivyabanu/Influ-Store.git
 cd Influ-Store
 
-# Switch to Phase 1 branch
-git checkout phase-1-foundation-auth
+# Switch to the Phase 2 branch (includes all Phase 1 functionality)
+git checkout phase-2-social-posts
 
 # Install dependencies
 npm install
@@ -210,14 +233,14 @@ npm start
 ## ☁️ Pending AWS Configuration
 
 - **Amazon RDS PostgreSQL**: When AWS activation is complete, update `DATABASE_URL` in `.env.local` / production environment to your RDS connection string and run `npm run prisma:migrate`.
-- **Amazon S3**: When S3 credentials become available, supply `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_S3_BUCKET_NAME`. The storage abstraction (`src/lib/storage/s3-storage.service.ts`) is designed to connect to S3 directly in Phase 2 for media/avatar uploads without application rewrites.
+- **Amazon S3**: When S3 credentials become available, supply `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_S3_BUCKET_NAME`. `S3StorageService` (`src/lib/storage/s3-storage.service.ts`) uses `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` to generate real presigned upload URLs — the browser uploads image bytes directly to S3, never through our server. Until these variables are set, `getStorageService()` automatically uses `LocalStorageService` instead (writes to `public/uploads/`, uploaded through a server route since a browser can't write to disk directly) — both implement the exact same `IStorageService` interface, so enabling S3 requires **no application code changes**, only setting these four variables.
 
 ---
 
 ## 🗺️ Roadmap (Phases 2-10)
 
-- **Phase 2**: Social Feed, Posts, Photos, Tagging & AWS S3 Integration
-- **Phase 3**: Follow System, Comments, Likes, Notifications
+- **Phase 2** ✅: Social Feed, Posts, Likes, Comments & Replies, Saved Posts
+- **Phase 3**: Follow System, Personalized Feed Ranking, Hashtag Search, Notifications
 - **Phase 4**: Explore, Search, Discovery Algorithm
 - **Phase 5**: Multi-Vendor Seller Stores & Product Catalog
 - **Phase 6**: Product Tagging inside Posts & Reels

@@ -70,8 +70,246 @@ async function main() {
     },
   });
 
+  // 4. Seed Phase 2 social content (posts, comments, replies, likes, saves).
+  // Cleared and recreated on every run so this script stays rerunnable —
+  // posts don't have a natural unique key to upsert against.
+  console.log("Seeding Phase 2 social content...");
+  await prisma.post.deleteMany({ where: { authorId: { in: [maya.id, priya.id, alex.id] } } });
+
+  const mayaPost1 = await prisma.post.create({
+    data: {
+      authorId: maya.id,
+      caption:
+        "Found the perfect pieces for a minimal weekend look. What do you think? ✨ #fashion #minimal",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/mayacarter/post1-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+          {
+            mediaKey: "seed/mayacarter/post1-2.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=85",
+            order: 1,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  const mayaPost2 = await prisma.post.create({
+    data: {
+      authorId: maya.id,
+      caption: "Neutral tones, clean silhouettes and a little sunshine. My current mood. 🤎 #lifestyle",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/mayacarter/post2-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  const priyaPost1 = await prisma.post.create({
+    data: {
+      authorId: priya.id,
+      caption: "Simple things, better spaces. Refreshing the corner of my apartment this week. #home",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/priya/post1-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  const priyaPost2 = await prisma.post.create({
+    data: {
+      authorId: priya.id,
+      caption: "Three ways to style one blazer. Swipe through for the full look. #style #ootd",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/priya/post2-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+          {
+            mediaKey: "seed/priya/post2-2.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1000&q=85",
+            order: 1,
+            width: 1000,
+            height: 1250,
+          },
+          {
+            mediaKey: "seed/priya/post2-3.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1000&q=85",
+            order: 2,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  const alexPost1 = await prisma.post.create({
+    data: {
+      authorId: alex.id,
+      caption: "The everyday setup. Keeping my desk clean and distraction-free. #tech #minimal",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/alexm/post1-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  const alexPost2 = await prisma.post.create({
+    data: {
+      authorId: alex.id,
+      caption: "New week. New goals. #fitness",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/alexm/post2-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  const mayaPost3 = await prisma.post.create({
+    data: {
+      authorId: maya.id,
+      caption: "A little self-care goes a long way. #beauty #selfcare",
+      media: {
+        create: [
+          {
+            mediaKey: "seed/mayacarter/post3-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+            width: 1000,
+            height: 1250,
+          },
+        ],
+      },
+    },
+  });
+
+  // Likes
+  await prisma.like.createMany({
+    data: [
+      { postId: mayaPost1.id, userId: priya.id },
+      { postId: mayaPost1.id, userId: alex.id },
+      { postId: mayaPost2.id, userId: alex.id },
+      { postId: priyaPost1.id, userId: maya.id },
+      { postId: priyaPost2.id, userId: maya.id },
+      { postId: priyaPost2.id, userId: alex.id },
+      { postId: alexPost1.id, userId: maya.id },
+      { postId: alexPost1.id, userId: priya.id },
+      { postId: mayaPost3.id, userId: priya.id },
+    ],
+  });
+
+  // Comments + one-level replies
+  const priyaCommentOnMaya1 = await prisma.comment.create({
+    data: { postId: mayaPost1.id, authorId: priya.id, content: "Love this! 😍" },
+  });
+  const alexCommentOnMaya1 = await prisma.comment.create({
+    data: { postId: mayaPost1.id, authorId: alex.id, content: "Where's this from?" },
+  });
+  await prisma.comment.create({
+    data: {
+      postId: mayaPost1.id,
+      authorId: maya.id,
+      parentId: alexCommentOnMaya1.id,
+      content: "Thank you! It's from our new collection 💕",
+    },
+  });
+  await prisma.comment.create({
+    data: {
+      postId: mayaPost1.id,
+      authorId: priya.id,
+      parentId: alexCommentOnMaya1.id,
+      content: "Same, need to know too!",
+    },
+  });
+
+  const mayaCommentOnPriya2 = await prisma.comment.create({
+    data: { postId: priyaPost2.id, authorId: maya.id, content: "The third look is my favorite 🔥" },
+  });
+  await prisma.comment.create({
+    data: {
+      postId: priyaPost2.id,
+      authorId: priya.id,
+      parentId: mayaCommentOnPriya2.id,
+      content: "Mine too honestly!",
+    },
+  });
+
+  await prisma.comment.create({
+    data: { postId: alexPost1.id, authorId: priya.id, content: "So clean, love a minimal desk setup." },
+  });
+
+  // Comment likes
+  await prisma.commentLike.createMany({
+    data: [
+      { commentId: priyaCommentOnMaya1.id, userId: maya.id },
+      { commentId: alexCommentOnMaya1.id, userId: maya.id },
+      { commentId: mayaCommentOnPriya2.id, userId: priya.id },
+    ],
+  });
+
+  // Saved posts (private per-user bookmarks)
+  await prisma.savedPost.createMany({
+    data: [
+      { userId: alex.id, postId: mayaPost1.id },
+      { userId: priya.id, postId: alexPost1.id },
+      { userId: maya.id, postId: priyaPost2.id },
+    ],
+  });
+
   console.log("Seeding finished successfully!");
   console.log(`Created/Verified users: @${maya.username}, @${priya.username}, @${alex.username}`);
+  console.log("Seeded 7 posts with comments, replies, likes, and saved posts.");
   console.log("Default password for all seeded accounts: Password123!");
 }
 
