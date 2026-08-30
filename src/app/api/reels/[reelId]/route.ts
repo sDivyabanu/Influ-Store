@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { deleteReel, getReelById, updateReelCaption } from "@/lib/services/reel.service";
+import { deleteReel, getReelById, updateReel } from "@/lib/services/reel.service";
 import { updateReelSchema } from "@/lib/validations/reel.schema";
 import { handleApiError } from "@/lib/api/handle-error";
 
@@ -39,9 +39,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const json = await request.json();
-    const { caption } = updateReelSchema.parse(json);
+    const input = updateReelSchema.parse(json);
 
-    const reel = await updateReelCaption(reelId, user.id, caption);
+    const reel = await updateReel(reelId, user.id, input);
 
     return NextResponse.json({ success: true, reel }, { status: 200 });
   } catch (error) {

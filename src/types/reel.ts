@@ -1,4 +1,5 @@
 import { PostAuthor } from "@/types/post";
+import { ProductTagPreview } from "@/types/product";
 
 export interface ReelItem {
   id: string;
@@ -18,4 +19,5 @@ export interface ReelItem {
   isOwner: boolean;
   /** Whether the viewer follows this reel's author — powers the FollowButton without an extra query. */
   isFollowingAuthor: boolean;
+  productTags: ProductTagPreview[];
 }

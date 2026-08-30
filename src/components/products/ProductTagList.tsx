@@ -1,14 +1,44 @@
 import React from "react";
 import Link from "next/link";
+import { ShoppingBag } from "lucide-react";
 import { formatMoney } from "@/lib/utils/money";
 import { ProductTagPreview } from "@/types/product";
+import { cn } from "@/lib/utils/cn";
+
+interface ProductTagListProps {
+  tags: ProductTagPreview[];
+  /**
+   * "light" (default) — chip row for light-background panels (post/reel
+   * detail, feed cards). "overlay" — compact pill row styled for the
+   * dark video overlay on ReelCard, mirroring ReelActions' variant split.
+   */
+  variant?: "light" | "overlay";
+}
 
 /** Renders a post/reel's tagged products as lightweight linked chips — never the full product objects. */
-export function ProductTagList({ tags }: { tags: ProductTagPreview[] }) {
+export function ProductTagList({ tags, variant = "light" }: ProductTagListProps) {
   if (tags.length === 0) return null;
 
+  if (variant === "overlay") {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map((tag) => (
+          <Link
+            key={tag.id}
+            href={`/product/${tag.slug}`}
+            className="flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-black/70"
+          >
+            <ShoppingBag className="h-3 w-3" />
+            <span className="max-w-[120px] truncate">{tag.name}</span>
+            <span className="text-white/70">{formatMoney(tag.basePrice)}</span>
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex gap-2.5 overflow-x-auto pb-1">
+    <div className={cn("flex gap-2.5 overflow-x-auto pb-1")}>
       {tags.map((tag) => (
         <Link
           key={tag.id}

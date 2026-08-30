@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { FollowButton } from "@/components/users/FollowButton";
 import { HashtagText } from "@/components/posts/HashtagText";
 import { useToast } from "@/features/toast/toast-context";
+import { useAuth } from "@/features/auth/auth-context";
 import { CommentItem } from "@/types/post";
 import { ReelItem } from "@/types/reel";
 import { POST_CAPTION_MAX_LENGTH } from "@/lib/constants/post";
+import { ProductTagSelector } from "@/components/products/ProductTagSelector";
+import { ProductTagList } from "@/components/products/ProductTagList";
 import { ReelVideo } from "./ReelVideo";
 import { ReelActions } from "./ReelActions";
 import { ReelMenu } from "./ReelMenu";
@@ -27,28 +30,32 @@ interface ReelDetailProps {
 export function ReelDetail({ reel, initialComments, initialCommentsCursor }: ReelDetailProps) {
   const router = useRouter();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const [caption, setCaption] = useState(reel.caption);
+  const [productTags, setProductTags] = useState(reel.productTags);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(reel.caption || "");
+  const [draftProductIds, setDraftProductIds] = useState<string[]>(reel.productTags.map((t) => t.id));
   const [saving, setSaving] = useState(false);
   // The detail page's video autoplays muted on load — there's no scroll-based
   // activation here the way there is in the feed, just a single reel.
   const [muted, setMuted] = useState(true);
 
-  async function saveCaption() {
+  async function saveEdits() {
     setSaving(true);
     try {
       const res = await fetch(`/api/reels/${reel.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caption: draft.trim() || null }),
+        body: JSON.stringify({ caption: draft.trim() || null, productIds: draftProductIds }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.message || "Failed to update reel.");
       }
       setCaption(data.reel.caption);
+      setProductTags(data.reel.productTags);
       setEditing(false);
       showToast("Reel updated");
     } catch (err) {
@@ -89,6 +96,7 @@ export function ReelDetail({ reel, initialComments, initialCommentsCursor }: Ree
               isOwner={reel.isOwner}
               onEdit={() => {
                 setDraft(caption || "");
+                setDraftProductIds(productTags.map((t) => t.id));
                 setEditing(true);
               }}
               onDeleted={() => {
@@ -103,7 +111,7 @@ export function ReelDetail({ reel, initialComments, initialCommentsCursor }: Ree
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-3 border-t border-neutral-200 px-5 py-4 dark:border-neutral-800">
             {editing ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value.slice(0, POST_CAPTION_MAX_LENGTH))}
@@ -112,27 +120,33 @@ export function ReelDetail({ reel, initialComments, initialCommentsCursor }: Ree
                   rows={3}
                   aria-label="Edit caption"
                 />
+                {user?.role === "SELLER" && (
+                  <ProductTagSelector selectedProductIds={draftProductIds} onChange={setDraftProductIds} />
+                )}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}>
                     Cancel
                   </Button>
-                  <Button type="button" size="sm" isLoading={saving} onClick={saveCaption}>
+                  <Button type="button" size="sm" isLoading={saving} onClick={saveEdits}>
                     Save
                   </Button>
                 </div>
               </div>
             ) : (
-              caption && (
-                <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
-                  <Link
-                    href={`/profile/${reel.author.username}`}
-                    className="font-semibold text-neutral-900 dark:text-white hover:underline"
-                  >
-                    {reel.author.username}
-                  </Link>{" "}
-                  <HashtagText text={caption} />
-                </p>
-              )
+              <>
+                {caption && (
+                  <p className="text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+                    <Link
+                      href={`/profile/${reel.author.username}`}
+                      className="font-semibold text-neutral-900 dark:text-white hover:underline"
+                    >
+                      {reel.author.username}
+                    </Link>{" "}
+                    <HashtagText text={caption} />
+                  </p>
+                )}
+                <ProductTagList tags={productTags} />
+              </>
             )}
           </div>
 

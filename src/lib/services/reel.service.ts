@@ -2,12 +2,13 @@ import { prisma } from "@/lib/db/prisma";
 import { getStorageService } from "@/lib/storage";
 import { NotFoundError, ForbiddenError } from "@/lib/errors";
 import { REEL_GRID_PAGE_SIZE } from "@/lib/constants/reel";
-import { CreateReelInput } from "@/lib/validations/reel.schema";
+import { CreateReelInput, UpdateReelInput } from "@/lib/validations/reel.schema";
 import { CursorPage } from "@/types/post";
 import { ReelItem } from "@/types/reel";
 import { reelInclude, serializeReel, getFollowingAuthorIds } from "./reel-shared";
 import { assertReelMediaKeyOwnedByUser } from "./reel-media-upload.service";
 import { syncReelHashtags } from "./hashtag.service";
+import { assertProductsTaggableByUser } from "./product-tag.service";
 
 export async function getReelById(
   reelId: string,
@@ -34,6 +35,11 @@ export async function createReel(
     assertReelMediaKeyOwnedByUser(input.thumbnailKey, authorId);
   }
 
+  const productIds = input.productIds ?? [];
+  if (productIds.length > 0) {
+    await assertProductsTaggableByUser(authorId, productIds);
+  }
+
   const storage = getStorageService();
   const caption = input.caption?.trim() || null;
 
@@ -54,6 +60,12 @@ export async function createReel(
 
     await syncReelHashtags(tx, created.id, caption);
 
+    if (productIds.length > 0) {
+      await tx.reelProductTag.createMany({
+        data: productIds.map((productId) => ({ reelId: created.id, productId })),
+      });
+    }
+
     return created.id;
   });
 
@@ -62,10 +74,10 @@ export async function createReel(
   return reel;
 }
 
-export async function updateReelCaption(
+export async function updateReel(
   reelId: string,
   userId: string,
-  caption: string | null
+  input: UpdateReelInput
 ): Promise<ReelItem> {
   const existing = await prisma.reel.findUnique({
     where: { id: reelId },
@@ -76,14 +88,26 @@ export async function updateReelCaption(
     throw new ForbiddenError("You can only edit your own reels.");
   }
 
-  const trimmedCaption = caption?.trim() || null;
+  if (input.productIds !== undefined) {
+    await assertProductsTaggableByUser(userId, input.productIds);
+  }
+
+  const trimmedCaption = input.caption !== undefined ? input.caption?.trim() || null : undefined;
 
   await prisma.$transaction(async (tx) => {
-    await tx.reel.update({
-      where: { id: reelId },
-      data: { caption: trimmedCaption },
-    });
-    await syncReelHashtags(tx, reelId, trimmedCaption);
+    if (trimmedCaption !== undefined) {
+      await tx.reel.update({ where: { id: reelId }, data: { caption: trimmedCaption } });
+      await syncReelHashtags(tx, reelId, trimmedCaption);
+    }
+
+    if (input.productIds !== undefined) {
+      await tx.reelProductTag.deleteMany({ where: { reelId } });
+      if (input.productIds.length > 0) {
+        await tx.reelProductTag.createMany({
+          data: input.productIds.map((productId) => ({ reelId, productId })),
+        });
+      }
+    }
   });
 
   const reel = await getReelById(reelId, userId);

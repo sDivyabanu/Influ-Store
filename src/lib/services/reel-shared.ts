@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { toMoney } from "@/lib/utils/money";
 import { ReelItem } from "@/types/reel";
+import { ProductTagPreview } from "@/types/product";
 import { toPostAuthor } from "./post-shared";
 
 /**
@@ -18,6 +20,23 @@ export function reelInclude(currentUserId: string | null) {
         profile: { select: { displayName: true, avatarUrl: true } },
       },
     },
+    // Only the lightweight preview fields a tag needs — never the full
+    // product object (Phase 6 spec section 29).
+    productTags: {
+      orderBy: { createdAt: "asc" },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            basePrice: true,
+            currency: true,
+            media: { where: { order: 0 }, take: 1, select: { mediaUrl: true } },
+          },
+        },
+      },
+    },
     _count: { select: { likes: true, comments: true } },
     likes: currentUserId
       ? { where: { userId: currentUserId }, select: { id: true } }
@@ -31,6 +50,18 @@ export function reelInclude(currentUserId: string | null) {
 export type ReelWithRelations = Prisma.ReelGetPayload<{
   include: ReturnType<typeof reelInclude>;
 }>;
+
+function toProductTagPreviews(
+  productTags: ReelWithRelations["productTags"]
+): ProductTagPreview[] {
+  return productTags.map((tag) => ({
+    id: tag.product.id,
+    name: tag.product.name,
+    slug: tag.product.slug,
+    basePrice: toMoney(tag.product.basePrice, tag.product.currency),
+    coverImageUrl: tag.product.media[0]?.mediaUrl ?? null,
+  }));
+}
 
 export function serializeReel(
   reel: ReelWithRelations,
@@ -54,6 +85,7 @@ export function serializeReel(
     savedByMe: currentUserId ? reel.savedBy.length > 0 : false,
     isOwner: currentUserId === reel.authorId,
     isFollowingAuthor: followingAuthorIds ? followingAuthorIds.has(reel.authorId) : false,
+    productTags: toProductTagPreviews(reel.productTags),
   };
 }
 

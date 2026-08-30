@@ -10,6 +10,7 @@ import { HashtagText } from "@/components/posts/HashtagText";
 import { useToast } from "@/features/toast/toast-context";
 import { ReelItem } from "@/types/reel";
 import { POST_CAPTION_MAX_LENGTH } from "@/lib/constants/post";
+import { ProductTagList } from "@/components/products/ProductTagList";
 import { ReelVideo } from "./ReelVideo";
 import { ReelActions } from "./ReelActions";
 import { ReelMenu } from "./ReelMenu";
@@ -136,11 +137,18 @@ export function ReelCard({ reel, isActive, muted, onToggleMute, onDeleted }: Ree
             </div>
           </div>
         ) : (
-          caption && (
-            <p className="pointer-events-auto mt-2 line-clamp-3 text-sm text-white/90">
-              <HashtagText text={caption} hashtagClassName="text-fuchsia-300 hover:text-fuchsia-200" />
-            </p>
-          )
+          <>
+            {caption && (
+              <p className="pointer-events-auto mt-2 line-clamp-3 text-sm text-white/90">
+                <HashtagText text={caption} hashtagClassName="text-fuchsia-300 hover:text-fuchsia-200" />
+              </p>
+            )}
+            {reel.productTags.length > 0 && (
+              <div className="pointer-events-auto mt-2">
+                <ProductTagList tags={reel.productTags} variant="overlay" />
+              </div>
+            )}
+          </>
         )}
       </div>
 
