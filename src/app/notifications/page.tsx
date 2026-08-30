@@ -360,7 +360,7 @@ export default function NotificationsPage() {
                 </h2>
 
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-gray-500">
-                  You don't have any notifications in this category.
+                  You don&apos;t have any notifications in this category.
                   Check back later for new activity.
                 </p>
 

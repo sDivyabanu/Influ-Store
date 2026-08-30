@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  SELLER
+  MODERATOR
+  ADMIN
+}
+
+enum AccountType {
+  CUSTOMER
+  INFLUENCER
+}
+
+enum MediaType {
+  IMAGE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  role          Role      @default(USER)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile Profile?
+
+  posts        Post[]
+  likes        Like[]
+  comments     Comment[]
+  commentLikes CommentLike[]
+  savedPosts   SavedPost[]
+
+  // Phase 3 Follow relations
+  following Follow[] @relation("UserFollowing")
+  followers Follow[] @relation("UserFollowers")
+
+  // Phase 4 Reel relations
+  reels            Reel[]
+  reelLikes        ReelLike[]
+  reelComments     ReelComment[]
+  reelCommentLikes ReelCommentLike[]
+  savedReels       SavedReel[]
+
+  @@index([username])
+  @@index([email])
+  @@map("users")
+}
+
+model Profile {
+  id          String      @id @default(cuid())
+  userId      String      @unique
+  displayName String
+  bio         String?
+  avatarUrl   String?
+  avatarKey   String?
+  website     String?
+  accountType AccountType @default(CUSTOMER)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profiles")
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  caption   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  media    PostMedia[]
+  likes    Like[]
+  comments Comment[]
+  savedBy  SavedPost[]
+  hashtags PostHashtag[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model PostMedia {
+  id        String    @id @default(cuid())
+  postId    String
+  mediaKey  String
+  mediaUrl  String
+  mediaType MediaType @default(IMAGE)
+  order     Int       @default(0)
+  width     Int?
+  height    Int?
+  createdAt DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, order])
+  @@index([postId])
+  @@map("post_media")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("CommentReplies")
+  likes   CommentLike[]
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_likes")
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@map("saved_posts")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Hashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  posts PostHashtag[]
+  reels ReelHashtag[]
+
+  @@index([name])
+  @@map("hashtags")
+}
+
+model PostHashtag {
+  id        String   @id @default(cuid())
+  postId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, hashtagId])
+  @@index([postId])
+  @@index([hashtagId])
+  @@map("post_hashtags")
+}
+
+// ==================================================
+// Phase 4: Reels (short-form vertical video)
+// ==================================================
+
+model Reel {
+  id           String   @id @default(cuid())
+  authorId     String
+  caption      String?  @db.Text
+  mediaKey     String
+  mediaUrl     String
+  thumbnailKey String?
+  thumbnailUrl String?
+  duration     Int? // seconds; client-reported, see reel.service.ts for validation limitations
+  width        Int?
+  height       Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    ReelLike[]
+  comments ReelComment[]
+  savedBy  SavedReel[]
+  hashtags ReelHashtag[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("reels")
+}
+
+model ReelLike {
+  id        String   @id @default(cuid())
+  reelId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+  @@map("reel_likes")
+}
+
+model ReelComment {
+  id        String   @id @default(cuid())
+  reelId    String
+  authorId  String
+  parentId  String?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reel    Reel              @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  author  User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  ReelComment?      @relation("ReelCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ReelComment[]     @relation("ReelCommentReplies")
+  likes   ReelCommentLike[]
+
+  @@index([reelId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("reel_comments")
+}
+
+model ReelCommentLike {
+  id            String   @id @default(cuid())
+  reelCommentId String
+  userId        String
+  createdAt     DateTime @default(now())
+
+  comment ReelComment @relation(fields: [reelCommentId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelCommentId, userId])
+  @@index([reelCommentId])
+  @@index([userId])
+  @@map("reel_comment_likes")
+}
+
+model SavedReel {
+  id        String   @id @default(cuid())
+  userId    String
+  reelId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+  @@index([userId])
+  @@index([reelId])
+  @@map("saved_reels")
+}
+
+model ReelHashtag {
+  id        String   @id @default(cuid())
+  reelId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  reel    Reel    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, hashtagId])
+  @@index([reelId])
+  @@index([hashtagId])
+  @@map("reel_hashtags")
+}
