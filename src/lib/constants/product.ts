@@ -56,3 +56,8 @@ export const PRODUCT_CATEGORY_LABELS: Record<ProductCategoryValue, string> = {
   FITNESS: "Fitness",
   OTHER: "Other",
 };
+
+// A post/reel may tag at most this many products — keeps tagged content
+// lightweight and prevents a single post from becoming a full catalog
+// listing (Phase 6 spec section 29).
+export const MAX_PRODUCT_TAGS_PER_CONTENT = 5;

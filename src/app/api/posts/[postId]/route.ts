@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { deletePost, getPostById, updatePostCaption } from "@/lib/services/post.service";
+import { deletePost, getPostById, updatePost } from "@/lib/services/post.service";
 import { updatePostSchema } from "@/lib/validations/post.schema";
 import { handleApiError } from "@/lib/api/handle-error";
 
@@ -39,9 +39,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const json = await request.json();
-    const { caption } = updatePostSchema.parse(json);
+    const input = updatePostSchema.parse(json);
 
-    const post = await updatePostCaption(postId, user.id, caption);
+    const post = await updatePost(postId, user.id, input);
 
     return NextResponse.json({ success: true, post }, { status: 200 });
   } catch (error) {

@@ -71,3 +71,16 @@ export interface ProductDetailItem extends ProductListItem {
   publishedAt: string | Date | null;
   updatedAt: string | Date;
 }
+
+/**
+ * Ultra-lightweight preview embedded in post/reel feed responses when a
+ * product is tagged — never the full product object (Phase 6 spec
+ * section 29). Deliberately excludes stock, variants, and description.
+ */
+export interface ProductTagPreview {
+  id: string;
+  name: string;
+  slug: string;
+  basePrice: Money;
+  coverImageUrl: string | null;
+}
