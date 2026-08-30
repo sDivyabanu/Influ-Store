@@ -28,3 +28,31 @@ export const MAX_STOCK_PER_VARIANT = 1_000_000;
 
 export const PRODUCT_PAGE_SIZE = 24;
 export const MY_PRODUCTS_PAGE_SIZE = 20;
+
+export const MAX_PRODUCT_MEDIA_COUNT = 8;
+
+// Plain string constants (not the @prisma/client enum) so client
+// components can import this list without pulling Prisma's runtime into
+// the browser bundle — see types/product.ts for the type-only enum usage.
+export const PRODUCT_CATEGORIES = [
+  "FASHION",
+  "BEAUTY",
+  "ELECTRONICS",
+  "HOME",
+  "ACCESSORIES",
+  "BOOKS",
+  "FITNESS",
+  "OTHER",
+] as const;
+export type ProductCategoryValue = (typeof PRODUCT_CATEGORIES)[number];
+
+export const PRODUCT_CATEGORY_LABELS: Record<ProductCategoryValue, string> = {
+  FASHION: "Fashion",
+  BEAUTY: "Beauty",
+  ELECTRONICS: "Electronics",
+  HOME: "Home",
+  ACCESSORIES: "Accessories",
+  BOOKS: "Books",
+  FITNESS: "Fitness",
+  OTHER: "Other",
+};

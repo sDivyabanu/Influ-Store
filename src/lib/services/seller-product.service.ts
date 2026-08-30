@@ -6,6 +6,7 @@ import { slugify, withUniqueSuffix } from "@/lib/utils/slug";
 import { DEFAULT_PRODUCT_CURRENCY, MY_PRODUCTS_PAGE_SIZE, SKU_MAX_LENGTH } from "@/lib/constants/product";
 import {
   CreateProductInput,
+  ProductMediaInput,
   ProductOptionInput,
   ProductVariantInput,
   UpdateProductInput,
@@ -19,6 +20,7 @@ import {
   serializeProductDetail,
   serializeProductListItem,
 } from "./product-shared";
+import { assertProductMediaKeysOwnedByUser } from "./product-media-upload.service";
 
 type NormalizedVariant = {
   sku: string;
@@ -150,6 +152,25 @@ async function persistCatalog(
   }
 }
 
+async function persistMedia(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  media: ProductMediaInput[]
+): Promise<void> {
+  if (media.length === 0) return;
+  const storage = getStorageService();
+  await tx.productMedia.createMany({
+    data: media.map((m, index) => ({
+      productId,
+      storageKey: m.key,
+      mediaUrl: storage.getPublicUrl(m.key),
+      mediaType: "IMAGE",
+      order: index,
+      altText: m.altText?.trim() || null,
+    })),
+  });
+}
+
 function translateUniqueConstraintError(error: unknown): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
     const target = Array.isArray(error.meta?.target)
@@ -163,11 +184,24 @@ function translateUniqueConstraintError(error: unknown): never {
   throw error;
 }
 
-export async function createProduct(sellerProfileId: string, input: CreateProductInput): Promise<ProductDetailItem> {
+export async function createProduct(
+  sellerProfileId: string,
+  userId: string,
+  input: CreateProductInput
+): Promise<ProductDetailItem> {
   const { options, variants } = normalizeAndValidateCatalog(input.name, input.options ?? [], input.variants);
   const currency = input.currency ?? DEFAULT_PRODUCT_CURRENCY;
   const { basePrice, totalStock } = computeProductAggregates(variants);
   const slug = withUniqueSuffix(slugify(input.name));
+
+  const media = input.media ?? [];
+  // Never trust the browser's claim that an uploaded image key belongs to it.
+  if (media.length > 0) {
+    assertProductMediaKeysOwnedByUser(
+      media.map((m) => m.key),
+      userId
+    );
+  }
 
   let productId: string;
   try {
@@ -183,10 +217,13 @@ export async function createProduct(sellerProfileId: string, input: CreateProduc
           compareAtPrice: input.compareAtPrice ?? null,
           basePrice,
           totalStock,
+          status: input.status ?? ProductStatus.DRAFT,
+          publishedAt: input.status === ProductStatus.ACTIVE ? new Date() : null,
         },
       });
 
       await persistCatalog(tx, product.id, sellerProfileId, options, variants);
+      await persistMedia(tx, product.id, media);
 
       return product.id;
     });
@@ -202,11 +239,12 @@ export async function createProduct(sellerProfileId: string, input: CreateProduc
 export async function updateProduct(
   productId: string,
   sellerProfileId: string,
+  userId: string,
   input: UpdateProductInput
 ): Promise<ProductDetailItem> {
   const existing = await prisma.product.findUnique({
     where: { id: productId },
-    select: { sellerProfileId: true, name: true },
+    select: { sellerProfileId: true, name: true, media: { select: { storageKey: true } } },
   });
   if (!existing) throw new NotFoundError("Product not found.");
   if (existing.sellerProfileId !== sellerProfileId) {
@@ -217,6 +255,14 @@ export async function updateProduct(
   const normalized = replacingCatalog
     ? normalizeAndValidateCatalog(input.name ?? existing.name, input.options ?? [], input.variants ?? [])
     : null;
+
+  const replacingMedia = input.media !== undefined;
+  if (replacingMedia && input.media!.length > 0) {
+    assertProductMediaKeysOwnedByUser(
+      input.media!.map((m) => m.key),
+      userId
+    );
+  }
 
   const data: Prisma.ProductUpdateInput = {};
   if (input.name !== undefined) data.name = input.name.trim();
@@ -246,10 +292,23 @@ export async function updateProduct(
         data.totalStock = totalStock;
       }
 
+      if (replacingMedia) {
+        await tx.productMedia.deleteMany({ where: { productId } });
+        await persistMedia(tx, productId, input.media ?? []);
+      }
+
       await tx.product.update({ where: { id: productId }, data });
     });
   } catch (error) {
     translateUniqueConstraintError(error);
+  }
+
+  // Only clean up replaced image files from storage after the DB
+  // transaction has actually committed, so a rollback never orphans a
+  // product that still references them.
+  if (replacingMedia && existing.media.length > 0) {
+    const storage = getStorageService();
+    await Promise.allSettled(existing.media.map((m) => storage.deleteFile(m.storageKey)));
   }
 
   const product = await getMyProductById(productId, sellerProfileId);

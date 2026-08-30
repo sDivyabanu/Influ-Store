@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const json = await request.json();
     const input = updateProductSchema.parse(json);
 
-    const product = await updateProduct(productId, sellerProfileId, input);
+    const product = await updateProduct(productId, sellerProfileId, user.id, input);
 
     return NextResponse.json({ success: true, product }, { status: 200 });
   } catch (error) {

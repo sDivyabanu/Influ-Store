@@ -3,6 +3,7 @@ import { ProductCategory, ProductStatus } from "@prisma/client";
 import {
   MAX_OPTION_VALUES_PER_OPTION,
   MAX_PRICE,
+  MAX_PRODUCT_MEDIA_COUNT,
   MAX_PRODUCT_OPTIONS,
   MAX_STOCK_PER_VARIANT,
   MAX_VARIANTS_PER_PRODUCT,
@@ -36,6 +37,12 @@ export const productVariantInputSchema = z.object({
 });
 export type ProductVariantInput = z.infer<typeof productVariantInputSchema>;
 
+export const productMediaInputSchema = z.object({
+  key: z.string().trim().min(1, "Media key is required").max(512),
+  altText: z.string().trim().max(140).optional(),
+});
+export type ProductMediaInput = z.infer<typeof productMediaInputSchema>;
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(1, "Product name is required").max(PRODUCT_NAME_MAX_LENGTH),
   description: z
@@ -52,12 +59,12 @@ export const createProductSchema = z.object({
     .array(productVariantInputSchema)
     .min(1, "Add at least one variant")
     .max(MAX_VARIANTS_PER_PRODUCT),
+  media: z.array(productMediaInputSchema).max(MAX_PRODUCT_MEDIA_COUNT).optional().default([]),
+  status: z.nativeEnum(ProductStatus).optional(),
 });
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 
-export const updateProductSchema = createProductSchema.partial().extend({
-  status: z.nativeEnum(ProductStatus).optional(),
-});
+export const updateProductSchema = createProductSchema.partial();
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 export const listProductsQuerySchema = z.object({

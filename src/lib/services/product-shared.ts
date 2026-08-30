@@ -110,6 +110,7 @@ export function serializeProductDetail(product: ProductWithDetailRelations): Pro
     },
     media: product.media.map((m) => ({
       id: m.id,
+      key: m.storageKey,
       mediaUrl: m.mediaUrl,
       mediaType: m.mediaType,
       order: m.order,

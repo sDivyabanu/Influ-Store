@@ -29,6 +29,11 @@ export interface ProductVariantItem {
 
 export interface ProductMediaItem {
   id: string;
+  // Safe to expose — product media is always PUBLIC storage (never the
+  // private seller-document architecture), so the key carries no more
+  // sensitivity than the URL. The seller edit form uses it to resubmit
+  // an unchanged image without re-uploading.
+  key: string;
   mediaUrl: string;
   mediaType: MediaType;
   order: number;
