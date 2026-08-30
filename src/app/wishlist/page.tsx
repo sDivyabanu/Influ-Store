@@ -137,9 +137,10 @@ export default function WishlistPage() {
               </h2>
 
               <p className="mt-3 max-w-md text-gray-500">
-                Save products you love and come back to them whenever you're
+                Save products you love and come back to them whenever you&apos;re
                 ready.
               </p>
+
 
               <Link
                 href="/explore"

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 const categories = [
   "All",
@@ -164,63 +166,10 @@ export default function ExplorePage() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen flex flex-col bg-neutral-50 dark:bg-black text-neutral-900 dark:text-white transition-colors">
+      <Navbar />
 
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/80 px-6 py-5 backdrop-blur-xl lg:px-10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-
-          <Link href="/" className="text-2xl font-bold">
-            Influ<span className="text-fuchsia-400">store</span>
-          </Link>
-
-          <div className="hidden items-center gap-8 text-sm md:flex">
-            <Link
-              href="/home"
-              className="text-gray-500 transition hover:text-white"
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/explore"
-              className="font-medium text-white"
-            >
-              Explore
-            </Link>
-
-            <Link
-              href="/products"
-              className="text-gray-500 transition hover:text-white"
-            >
-              Shop
-            </Link>
-
-            <Link
-              href="/notifications"
-              className="text-gray-500 transition hover:text-white"
-            >
-              Notifications
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/cart"
-              className="hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10 sm:block"
-            >
-              Cart
-            </Link>
-
-            <Link
-              href="/profile"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-400 font-semibold"
-            >
-              P
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <div className="flex-1 pt-12">
 
       {/* HERO */}
       <section className="relative overflow-hidden px-6 pb-16 pt-16 lg:px-10 lg:pt-24">
@@ -503,18 +452,8 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-white/10 px-6 py-10 lg:px-10">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm text-gray-600 sm:flex-row">
-          <p>
-            Influ<span className="text-fuchsia-400">store</span>
-          </p>
-
-          <p>Discover. Influence. Shop.</p>
-
-          <p>© 2026 Influstore</p>
-        </div>
-      </footer>
+      </div>
+      <Footer />
     </main>
   );
-}
+}
