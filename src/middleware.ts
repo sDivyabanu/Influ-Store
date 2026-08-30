@@ -10,7 +10,13 @@ function getAuthSecret(): Uint8Array {
 }
 
 // Protected route prefixes that require an authenticated session
-const protectedRoutes = ["/settings", "/api/profile"];
+const protectedRoutes = [
+  "/settings",
+  "/api/profile",
+  "/saved",
+  "/api/saved",
+  "/create-post",
+];
 
 // Auth routes where authenticated users should be redirected away
 const authRoutes = ["/login", "/register", "/signup"];
