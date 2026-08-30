@@ -61,6 +61,58 @@ export async function syncPostHashtags(
 }
 
 /**
+ * Synchronizes a reel's hashtags inside a database transaction.
+ * Mirrors syncPostHashtags for the parallel ReelHashtag join table.
+ */
+export async function syncReelHashtags(
+  tx: Prisma.TransactionClient,
+  reelId: string,
+  caption: string | null
+): Promise<void> {
+  const extractedTags = extractHashtags(caption);
+
+  if (extractedTags.length === 0) {
+    await tx.reelHashtag.deleteMany({ where: { reelId } });
+    return;
+  }
+
+  const hashtagRecords = await Promise.all(
+    extractedTags.map((tag) =>
+      tx.hashtag.upsert({
+        where: { name: tag },
+        create: { name: tag },
+        update: {},
+      })
+    )
+  );
+
+  const hashtagIds = hashtagRecords.map((h) => h.id);
+
+  await tx.reelHashtag.deleteMany({
+    where: {
+      reelId,
+      hashtagId: { notIn: hashtagIds },
+    },
+  });
+
+  for (const hashtagId of hashtagIds) {
+    await tx.reelHashtag.upsert({
+      where: {
+        reelId_hashtagId: {
+          reelId,
+          hashtagId,
+        },
+      },
+      create: {
+        reelId,
+        hashtagId,
+      },
+      update: {},
+    });
+  }
+}
+
+/**
  * Retrieves posts tagged with a specific hashtag with cursor pagination.
  */
 export async function getHashtagPosts(

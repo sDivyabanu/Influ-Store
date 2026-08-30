@@ -45,6 +45,13 @@ model User {
   following Follow[] @relation("UserFollowing")
   followers Follow[] @relation("UserFollowers")
 
+  // Phase 4 Reel relations
+  reels            Reel[]
+  reelLikes        ReelLike[]
+  reelComments     ReelComment[]
+  reelCommentLikes ReelCommentLike[]
+  savedReels       SavedReel[]
+
   @@index([username])
   @@index([email])
   @@map("users")
@@ -192,6 +199,7 @@ model Hashtag {
   createdAt DateTime @default(now())
 
   posts PostHashtag[]
+  reels ReelHashtag[]
 
   @@index([name])
   @@map("hashtags")
@@ -210,4 +218,114 @@ model PostHashtag {
   @@index([postId])
   @@index([hashtagId])
   @@map("post_hashtags")
+}
+
+// ==================================================
+// Phase 4: Reels (short-form vertical video)
+// ==================================================
+
+model Reel {
+  id           String   @id @default(cuid())
+  authorId     String
+  caption      String?  @db.Text
+  mediaKey     String
+  mediaUrl     String
+  thumbnailKey String?
+  thumbnailUrl String?
+  duration     Int? // seconds; client-reported, see reel.service.ts for validation limitations
+  width        Int?
+  height       Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    ReelLike[]
+  comments ReelComment[]
+  savedBy  SavedReel[]
+  hashtags ReelHashtag[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("reels")
+}
+
+model ReelLike {
+  id        String   @id @default(cuid())
+  reelId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+  @@map("reel_likes")
+}
+
+model ReelComment {
+  id        String   @id @default(cuid())
+  reelId    String
+  authorId  String
+  parentId  String?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reel    Reel              @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  author  User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  ReelComment?      @relation("ReelCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ReelComment[]     @relation("ReelCommentReplies")
+  likes   ReelCommentLike[]
+
+  @@index([reelId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("reel_comments")
+}
+
+model ReelCommentLike {
+  id            String   @id @default(cuid())
+  reelCommentId String
+  userId        String
+  createdAt     DateTime @default(now())
+
+  comment ReelComment @relation(fields: [reelCommentId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelCommentId, userId])
+  @@index([reelCommentId])
+  @@index([userId])
+  @@map("reel_comment_likes")
+}
+
+model SavedReel {
+  id        String   @id @default(cuid())
+  userId    String
+  reelId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+  @@index([userId])
+  @@index([reelId])
+  @@map("saved_reels")
+}
+
+model ReelHashtag {
+  id        String   @id @default(cuid())
+  reelId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  reel    Reel    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, hashtagId])
+  @@index([reelId])
+  @@index([hashtagId])
+  @@map("reel_hashtags")
 }
