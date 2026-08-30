@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getHashtagPosts } from "@/lib/services/hashtag.service";
+import { getHashtagPosts, getHashtagReels } from "@/lib/services/hashtag.service";
 import { cursorPaginationSchema } from "@/lib/validations/pagination.schema";
 import { handleApiError } from "@/lib/api/handle-error";
 
@@ -17,13 +17,22 @@ export async function GET(
       cursor: searchParams.get("cursor") ?? undefined,
       limit: searchParams.get("limit") ?? undefined,
     });
+    const type = searchParams.get("type") === "reels" ? "reels" : "posts";
 
-    const result = await getHashtagPosts(
-      tag,
-      user?.id ?? null,
-      cursor,
-      limit
-    );
+    if (type === "reels") {
+      const result = await getHashtagReels(tag, user?.id ?? null, cursor, limit);
+      return NextResponse.json(
+        {
+          success: true,
+          hashtag: result.hashtag,
+          reels: result.reels.items,
+          nextCursor: result.reels.nextCursor,
+        },
+        { status: 200 }
+      );
+    }
+
+    const result = await getHashtagPosts(tag, user?.id ?? null, cursor, limit);
 
     return NextResponse.json(
       {
@@ -35,6 +44,6 @@ export async function GET(
       { status: 200 }
     );
   } catch (error) {
-    return handleApiError(error, "Failed to load hashtag posts.");
+    return handleApiError(error, "Failed to load hashtag content.");
   }
 }

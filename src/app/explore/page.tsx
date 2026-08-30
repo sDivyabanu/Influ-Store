@@ -9,9 +9,10 @@ import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import { UserCard } from "@/components/users/UserCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { FeedPost } from "@/types/post";
+import { ReelItem } from "@/types/reel";
 import { UserCardItem } from "@/types/follow";
 import { HashtagItem } from "@/types/search";
-import { Search, Sparkles, TrendingUp, Compass, ArrowRight } from "lucide-react";
+import { Search, Sparkles, TrendingUp, Compass, ArrowRight, Clapperboard, Play } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const categories = [
@@ -34,23 +35,26 @@ export default function ExplorePage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [trendingTags, setTrendingTags] = useState<HashtagItem[]>([]);
   const [suggestedCreators, setSuggestedCreators] = useState<UserCardItem[]>([]);
+  const [trendingReels, setTrendingReels] = useState<ReelItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial load: explore posts, trending hashtags, and suggested creators
+  // Initial load: explore posts, trending hashtags, suggested creators, and trending reels
   useEffect(() => {
     async function loadExploreData() {
       setIsLoading(true);
       try {
-        const [postsRes, tagsRes, creatorsRes] = await Promise.all([
+        const [postsRes, tagsRes, creatorsRes, reelsRes] = await Promise.all([
           fetch("/api/explore?limit=16"),
           fetch("/api/hashtags/trending?limit=6"),
           fetch("/api/suggestions?limit=4"),
+          fetch("/api/explore/reels?limit=8"),
         ]);
 
-        const [postsData, tagsData, creatorsData] = await Promise.all([
+        const [postsData, tagsData, creatorsData, reelsData] = await Promise.all([
           postsRes.json(),
           tagsRes.json(),
           creatorsRes.json(),
+          reelsRes.json(),
         ]);
 
         if (postsRes.ok && postsData.success) {
@@ -62,6 +66,9 @@ export default function ExplorePage() {
         }
         if (creatorsRes.ok && creatorsData.success) {
           setSuggestedCreators(creatorsData.users);
+        }
+        if (reelsRes.ok && reelsData.success) {
+          setTrendingReels(reelsData.reels);
         }
       } catch {
         // Fallback gracefully
@@ -154,6 +161,57 @@ export default function ExplorePage() {
             ))}
           </div>
         </section>
+
+        {/* TRENDING REELS ROW */}
+        {trendingReels.length > 0 && (
+          <section className="px-6 pt-10 lg:px-10">
+            <div className="mx-auto max-w-7xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clapperboard className="h-4 w-4 text-fuchsia-500" />
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                    Trending Reels
+                  </h2>
+                </div>
+
+                <Link
+                  href="/reels"
+                  className="text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                >
+                  Watch all →
+                </Link>
+              </div>
+
+              <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
+                {trendingReels.map((reel) => (
+                  <Link
+                    key={reel.id}
+                    href={`/reel/${reel.id}`}
+                    className="group relative aspect-[9/16] w-32 shrink-0 overflow-hidden rounded-2xl bg-neutral-900 sm:w-36"
+                  >
+                    <video
+                      src={reel.mediaUrl}
+                      poster={reel.thumbnailUrl ?? undefined}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      aria-label={reel.caption || `Reel by @${reel.author.username}`}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white">
+                      <Play className="h-2.5 w-2.5 fill-white" />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                      <p className="truncate text-[11px] font-semibold text-white">
+                        @{reel.author.username}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* TRENDING HASHTAGS & CREATORS ROW */}
         {(trendingTags.length > 0 || suggestedCreators.length > 0) && (

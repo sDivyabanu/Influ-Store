@@ -2,8 +2,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { extractHashtags } from "@/lib/utils/hashtags";
 import { CursorPage, FeedPost } from "@/types/post";
+import { ReelItem } from "@/types/reel";
 import { HashtagItem } from "@/types/search";
 import { postInclude, serializePost } from "./post-shared";
+import { reelInclude, serializeReel, getFollowingAuthorIds } from "./reel-shared";
 
 /**
  * Synchronizes a post's hashtags inside a database transaction.
@@ -164,6 +166,65 @@ export async function getHashtagPosts(
     posts: {
       items: page.map((ph) => serializePost(ph.post, currentUserId)),
       nextCursor: hasMore ? page[page.length - 1].postId : null,
+    },
+  };
+}
+
+/**
+ * Retrieves reels tagged with a specific hashtag with cursor pagination.
+ * Mirrors getHashtagPosts for the parallel ReelHashtag join table.
+ */
+export async function getHashtagReels(
+  tagName: string,
+  currentUserId: string | null,
+  cursor?: string | null,
+  limit: number = 20
+): Promise<{
+  hashtag: { id: string; name: string; reelCount: number } | null;
+  reels: CursorPage<ReelItem>;
+}> {
+  const normalizedTag = tagName.replace(/^#/, "").toLowerCase();
+
+  const hashtag = await prisma.hashtag.findUnique({
+    where: { name: normalizedTag },
+    include: {
+      _count: { select: { reels: true } },
+    },
+  });
+
+  if (!hashtag) {
+    return {
+      hashtag: null,
+      reels: { items: [], nextCursor: null },
+    };
+  }
+
+  const reelHashtags = await prisma.reelHashtag.findMany({
+    where: { hashtagId: hashtag.id },
+    orderBy: { createdAt: "desc" },
+    take: limit + 1,
+    ...(cursor ? { cursor: { reelId_hashtagId: { reelId: cursor, hashtagId: hashtag.id } }, skip: 1 } : {}),
+    include: {
+      reel: {
+        include: reelInclude(currentUserId),
+      },
+    },
+  });
+
+  const hasMore = reelHashtags.length > limit;
+  const page = hasMore ? reelHashtags.slice(0, limit) : reelHashtags;
+  const authorIds = Array.from(new Set(page.map((rh) => rh.reel.authorId)));
+  const followingAuthorIds = await getFollowingAuthorIds(currentUserId, authorIds);
+
+  return {
+    hashtag: {
+      id: hashtag.id,
+      name: hashtag.name,
+      reelCount: hashtag._count.reels,
+    },
+    reels: {
+      items: page.map((rh) => serializeReel(rh.reel, currentUserId, followingAuthorIds)),
+      nextCursor: hasMore ? page[page.length - 1].reelId : null,
     },
   };
 }

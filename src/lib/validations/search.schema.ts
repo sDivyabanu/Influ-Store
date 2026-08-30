@@ -7,7 +7,7 @@ export const searchQuerySchema = cursorPaginationSchema.extend({
     .trim()
     .min(1, "Search query cannot be empty")
     .max(100, "Search query is too long"),
-  type: z.enum(["all", "users", "posts", "hashtags"]).default("all"),
+  type: z.enum(["all", "users", "posts", "reels", "hashtags"]).default("all"),
   limit: z.coerce.number().int().positive().max(50).default(20),
 });
 

@@ -7,9 +7,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { UserCard } from "@/components/users/UserCard";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
+import { ReelGrid } from "@/components/reels/ReelGrid";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SearchResults, SearchType } from "@/types/search";
-import { Search, Hash, Users, Sparkles, X, ArrowRight, TrendingUp } from "lucide-react";
+import { Search, Hash, Users, Sparkles, X, ArrowRight, TrendingUp, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 function SearchContent() {
@@ -104,6 +105,7 @@ function SearchContent() {
     { type: "all", label: "All", icon: Sparkles },
     { type: "users", label: "People", icon: Users },
     { type: "posts", label: "Posts", icon: Search },
+    { type: "reels", label: "Reels", icon: Clapperboard },
     { type: "hashtags", label: "Tags", icon: Hash },
   ];
 
@@ -111,6 +113,7 @@ function SearchContent() {
     results &&
     ((results.users?.items.length ?? 0) > 0 ||
       (results.posts?.items.length ?? 0) > 0 ||
+      (results.reels?.items.length ?? 0) > 0 ||
       (results.hashtags?.items.length ?? 0) > 0);
 
   return (
@@ -350,6 +353,34 @@ function SearchContent() {
                 <ExploreGrid
                   initialPosts={results.posts.items}
                   initialCursor={results.posts.nextCursor}
+                />
+              </section>
+            )}
+
+          {/* REELS RESULTS */}
+          {(activeTab === "all" || activeTab === "reels") &&
+            results?.reels &&
+            results.reels.items.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Clapperboard className="h-4 w-4 text-fuchsia-500" />
+                  <h2 className="text-base font-bold text-neutral-900 dark:text-white">
+                    Reels
+                  </h2>
+                </div>
+
+                <ReelGrid
+                  fetchBaseUrl={`/api/search?q=${encodeURIComponent(query)}&type=reels`}
+                  initialReels={results.reels.items}
+                  initialCursor={results.reels.nextCursor}
+                  emptyMessage="No reels found."
+                  extractResponse={(data) => {
+                    const typed = data as { results?: { reels?: { items?: typeof results.reels.items; nextCursor?: string | null } } };
+                    return {
+                      reels: typed.results?.reels?.items ?? [],
+                      nextCursor: typed.results?.reels?.nextCursor ?? null,
+                    };
+                  }}
                 />
               </section>
             )}

@@ -7,11 +7,23 @@ import { Button } from "@/components/ui/Button";
 import { ReelItem } from "@/types/reel";
 
 interface ReelGridProps {
-  /** Cursor-paginated GET endpoint returning { reels, nextCursor } — e.g. "/api/users/{username}/reels" or "/api/saved/reels". */
+  /** Cursor-paginated GET endpoint — e.g. "/api/users/{username}/reels" or "/api/saved/reels". */
   fetchBaseUrl: string;
   initialReels: ReelItem[];
   initialCursor: string | null;
   emptyMessage: string;
+  /**
+   * Extracts { reels, nextCursor } from the endpoint's JSON response.
+   * Defaults to the flat { reels, nextCursor } shape most reel-listing
+   * endpoints return; pass a custom extractor for endpoints with a
+   * different shape (e.g. /api/search nests results under `results.reels`).
+   */
+  extractResponse?: (data: unknown) => { reels: ReelItem[]; nextCursor: string | null };
+}
+
+function defaultExtractResponse(data: unknown): { reels: ReelItem[]; nextCursor: string | null } {
+  const typed = data as { reels?: ReelItem[]; nextCursor?: string | null };
+  return { reels: typed.reels ?? [], nextCursor: typed.nextCursor ?? null };
 }
 
 function formatDuration(seconds: number | null): string | null {
@@ -30,7 +42,13 @@ function formatDuration(seconds: number | null): string | null {
  * pipeline — cheap on bandwidth since metadata-only preload never
  * downloads the full video.
  */
-export function ReelGrid({ fetchBaseUrl, initialReels, initialCursor, emptyMessage }: ReelGridProps) {
+export function ReelGrid({
+  fetchBaseUrl,
+  initialReels,
+  initialCursor,
+  emptyMessage,
+  extractResponse = defaultExtractResponse,
+}: ReelGridProps) {
   const [reels, setReels] = useState(initialReels);
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
@@ -42,9 +60,10 @@ export function ReelGrid({ fetchBaseUrl, initialReels, initialCursor, emptyMessa
       const separator = fetchBaseUrl.includes("?") ? "&" : "?";
       const res = await fetch(`${fetchBaseUrl}${separator}cursor=${encodeURIComponent(cursor)}`);
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error();
-      setReels((current) => [...current, ...data.reels]);
-      setCursor(data.nextCursor);
+      if (!res.ok || !(data as { success?: boolean }).success) throw new Error();
+      const { reels: nextReels, nextCursor } = extractResponse(data);
+      setReels((current) => [...current, ...nextReels]);
+      setCursor(nextCursor);
     } catch {
       // Button stays visible so the user can retry.
     } finally {
