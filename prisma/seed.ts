@@ -1,4 +1,4 @@
-import { PrismaClient, Role, AccountType } from "@prisma/client";
+import { PrismaClient, Role, AccountType, ProductCategory, ProductStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -490,9 +490,246 @@ async function main() {
     ],
   });
 
+  // 12. Seed Phase 6 marketplace data: upgrade Maya to a seller with a
+  // storefront, a mix of simple and variant products, and product tags
+  // on her existing post/reel — demonstrates the full catalog + tagging
+  // system end to end.
+  console.log("Seeding Phase 6 marketplace data...");
+
+  await prisma.user.update({ where: { id: maya.id }, data: { role: Role.SELLER } });
+
+  const mayaStore = await prisma.sellerProfile.upsert({
+    where: { userId: maya.id },
+    update: {},
+    create: {
+      userId: maya.id,
+      storeName: "Maya's Style Studio",
+      slug: "mayas-style-studio",
+      description: "Curated fashion, accessories, and beauty essentials — handpicked by Maya.",
+      logoKey: "seed/mayacarter/store-logo.jpg",
+      logoUrl:
+        "https://images.unsplash.com/photo-1554412933-514a83d2f3c8?auto=format&fit=crop&w=400&q=85",
+      bannerKey: "seed/mayacarter/store-banner.jpg",
+      bannerUrl:
+        "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1600&q=85",
+      website: "https://mayacarter.style",
+    },
+  });
+
+  // Simple product (no options) — a single default variant.
+  const mayaTote = await prisma.product.upsert({
+    where: { slug: "maya-everyday-tote" },
+    update: {},
+    create: {
+      sellerProfileId: mayaStore.id,
+      name: "Everyday Tote",
+      slug: "maya-everyday-tote",
+      description: "A roomy, durable tote for daily essentials. Neutral tone, works with everything.",
+      category: ProductCategory.ACCESSORIES,
+      status: ProductStatus.ACTIVE,
+      publishedAt: new Date(),
+      currency: "INR",
+      basePrice: 1499,
+      totalStock: 40,
+      media: {
+        create: [
+          {
+            storageKey: "seed/mayacarter/product-tote-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+          },
+        ],
+      },
+      variants: {
+        create: [
+          {
+            sellerProfileId: mayaStore.id,
+            sku: "MAYA-TOTE-001",
+            price: 1499,
+            stock: 40,
+            isActive: true,
+            isDefault: true,
+          },
+        ],
+      },
+    },
+  });
+
+  // Variant product — a "Size" option with three variants sharing one price.
+  const mayaHoodie = await prisma.product.upsert({
+    where: { slug: "maya-essential-hoodie" },
+    update: {},
+    create: {
+      sellerProfileId: mayaStore.id,
+      name: "Essential Hoodie",
+      slug: "maya-essential-hoodie",
+      description: "Soft fleece hoodie in a relaxed fit. A wardrobe staple for cooler days.",
+      category: ProductCategory.FASHION,
+      status: ProductStatus.ACTIVE,
+      publishedAt: new Date(),
+      currency: "INR",
+      basePrice: 2199,
+      totalStock: 37,
+      media: {
+        create: [
+          {
+            storageKey: "seed/mayacarter/product-hoodie-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+          },
+          {
+            storageKey: "seed/mayacarter/product-hoodie-2.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1000&q=85",
+            order: 1,
+          },
+        ],
+      },
+      options: {
+        create: [
+          {
+            name: "Size",
+            order: 0,
+            values: {
+              create: [
+                { value: "S", order: 0 },
+                { value: "M", order: 1 },
+                { value: "L", order: 2 },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    include: { options: { include: { values: true } } },
+  });
+
+  const sizeOption = mayaHoodie.options.find((o) => o.name === "Size");
+  const sizeValueIdByLabel = new Map(sizeOption?.values.map((v) => [v.value, v.id]) ?? []);
+  const hoodieVariantDefs = [
+    { sku: "MAYA-HOODIE-S", size: "S", stock: 15 },
+    { sku: "MAYA-HOODIE-M", size: "M", stock: 12 },
+    { sku: "MAYA-HOODIE-L", size: "L", stock: 10 },
+  ];
+  for (const def of hoodieVariantDefs) {
+    const optionValueId = sizeValueIdByLabel.get(def.size);
+    if (!optionValueId) continue;
+    const variant = await prisma.productVariant.upsert({
+      where: { sellerProfileId_sku: { sellerProfileId: mayaStore.id, sku: def.sku } },
+      update: {},
+      create: {
+        productId: mayaHoodie.id,
+        sellerProfileId: mayaStore.id,
+        sku: def.sku,
+        price: 2199,
+        stock: def.stock,
+        isActive: true,
+        isDefault: false,
+      },
+    });
+    await prisma.variantOptionValue.upsert({
+      where: { variantId_optionValueId: { variantId: variant.id, optionValueId } },
+      update: {},
+      create: { variantId: variant.id, optionValueId },
+    });
+  }
+
+  // Simple product again, in a different category.
+  await prisma.product.upsert({
+    where: { slug: "maya-daily-glow-set" },
+    update: {},
+    create: {
+      sellerProfileId: mayaStore.id,
+      name: "Daily Glow Set",
+      slug: "maya-daily-glow-set",
+      description: "A three-step routine for a natural, everyday glow.",
+      category: ProductCategory.BEAUTY,
+      status: ProductStatus.ACTIVE,
+      publishedAt: new Date(),
+      currency: "INR",
+      basePrice: 1899,
+      totalStock: 25,
+      media: {
+        create: [
+          {
+            storageKey: "seed/mayacarter/product-glow-1.jpg",
+            mediaUrl:
+              "https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1000&q=85",
+            order: 0,
+          },
+        ],
+      },
+      variants: {
+        create: [
+          {
+            sellerProfileId: mayaStore.id,
+            sku: "MAYA-GLOW-001",
+            price: 1899,
+            stock: 25,
+            isActive: true,
+            isDefault: true,
+          },
+        ],
+      },
+    },
+  });
+
+  // A DRAFT product — never shown in the marketplace, exercises the
+  // seller dashboard's status filter and the draft-hides-from-tagging rule.
+  await prisma.product.upsert({
+    where: { slug: "maya-studio-headphones" },
+    update: {},
+    create: {
+      sellerProfileId: mayaStore.id,
+      name: "Studio Headphones",
+      slug: "maya-studio-headphones",
+      description: "Still finalizing packaging photos before this one goes live.",
+      category: ProductCategory.ELECTRONICS,
+      status: ProductStatus.DRAFT,
+      currency: "INR",
+      basePrice: 4999,
+      totalStock: 5,
+      variants: {
+        create: [
+          {
+            sellerProfileId: mayaStore.id,
+            sku: "MAYA-HEADPHONES-001",
+            price: 4999,
+            stock: 5,
+            isActive: true,
+            isDefault: true,
+          },
+        ],
+      },
+    },
+  });
+
+  // Tag Maya's own products into her own existing post/reel — only ever
+  // valid because she's both the author and the products' seller.
+  await prisma.postProductTag.upsert({
+    where: { postId_productId: { postId: mayaPost1.id, productId: mayaHoodie.id } },
+    update: {},
+    create: { postId: mayaPost1.id, productId: mayaHoodie.id },
+  });
+  await prisma.postProductTag.upsert({
+    where: { postId_productId: { postId: mayaPost1.id, productId: mayaTote.id } },
+    update: {},
+    create: { postId: mayaPost1.id, productId: mayaTote.id },
+  });
+  await prisma.reelProductTag.upsert({
+    where: { reelId_productId: { reelId: mayaReel1.id, productId: mayaHoodie.id } },
+    update: {},
+    create: { reelId: mayaReel1.id, productId: mayaHoodie.id },
+  });
+
   console.log("Seeding finished successfully!");
   console.log(`Created/Verified users: @${maya.username}, @${priya.username}, @${alex.username}`);
   console.log("Seeded 7 posts, 4 reels, 5 follow relationships, and indexed hashtags.");
+  console.log(
+    `Seeded Maya's storefront (@${maya.username} -> SELLER) with 4 products (1 with size variants) and product tags on her post/reel.`
+  );
   console.log("Default password for all seeded accounts: Password123!");
 }
 

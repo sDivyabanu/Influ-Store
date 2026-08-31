@@ -12,10 +12,28 @@ interface ProductGridProps {
   initialProducts: ProductListItem[];
   initialCursor: string | null;
   emptyMessage: string;
+  /**
+   * Extracts { products, nextCursor } from the endpoint's JSON response.
+   * Defaults to the flat { products, nextCursor } shape most endpoints
+   * return; pass a custom extractor for endpoints with a different shape
+   * (e.g. /api/search nests results under `results.products`).
+   */
+  extractResponse?: (data: unknown) => { products: ProductListItem[]; nextCursor: string | null };
+}
+
+function defaultExtractResponse(data: unknown): { products: ProductListItem[]; nextCursor: string | null } {
+  const typed = data as { products?: ProductListItem[]; nextCursor?: string | null };
+  return { products: typed.products ?? [], nextCursor: typed.nextCursor ?? null };
 }
 
 /** Simple infinite-load product grid — used on store pages and the profile Store tab. See ShopPageClient for the filterable marketplace variant. */
-export function ProductGrid({ fetchBaseUrl, initialProducts, initialCursor, emptyMessage }: ProductGridProps) {
+export function ProductGrid({
+  fetchBaseUrl,
+  initialProducts,
+  initialCursor,
+  emptyMessage,
+  extractResponse = defaultExtractResponse,
+}: ProductGridProps) {
   const [products, setProducts] = useState(initialProducts);
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
@@ -27,9 +45,10 @@ export function ProductGrid({ fetchBaseUrl, initialProducts, initialCursor, empt
       const separator = fetchBaseUrl.includes("?") ? "&" : "?";
       const res = await fetch(`${fetchBaseUrl}${separator}cursor=${encodeURIComponent(cursor)}`);
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error();
-      setProducts((current) => [...current, ...data.products]);
-      setCursor(data.nextCursor);
+      if (!res.ok || !(data as { success?: boolean }).success) throw new Error();
+      const { products: nextProducts, nextCursor } = extractResponse(data);
+      setProducts((current) => [...current, ...nextProducts]);
+      setCursor(nextCursor);
     } catch {
       // Button stays visible so the user can retry.
     } finally {

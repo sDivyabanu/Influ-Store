@@ -1,8 +1,11 @@
+import { ProductStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { CursorPage, FeedPost } from "@/types/post";
 import { ReelItem } from "@/types/reel";
+import { ProductListItem } from "@/types/product";
 import { postInclude, serializePost } from "./post-shared";
 import { reelInclude, serializeReel, getFollowingAuthorIds } from "./reel-shared";
+import { productListInclude, serializeProductListItem } from "./product-shared";
 
 /**
  * Retrieves explore posts with engagement-aware ranking and optional category filtering.
@@ -117,6 +120,40 @@ export async function getExploreReels(
 
   return {
     items: page.map((r) => serializeReel(r, currentUserId, followingAuthorIds)),
+    nextCursor: hasMore ? page[page.length - 1].id : null,
+  };
+}
+
+/**
+ * Retrieves trending/popular products for the explore feed. There's no
+ * denormalized engagement counter for products (unlike posts/reels'
+ * like/comment counts), so "popularity" here is how often a product has
+ * been tagged into a post or reel — a real, if simple, signal — falling
+ * back to recency. Always scoped to ACTIVE products, like every other
+ * public product read.
+ */
+export async function getExploreProducts(
+  cursor?: string | null,
+  limit: number = 20
+): Promise<CursorPage<ProductListItem>> {
+  const products = await prisma.product.findMany({
+    where: { status: ProductStatus.ACTIVE },
+    orderBy: [
+      { postTags: { _count: "desc" } },
+      { reelTags: { _count: "desc" } },
+      { createdAt: "desc" },
+      { id: "asc" },
+    ],
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    include: productListInclude(),
+  });
+
+  const hasMore = products.length > limit;
+  const page = hasMore ? products.slice(0, limit) : products;
+
+  return {
+    items: page.map(serializeProductListItem),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }

@@ -8,9 +8,10 @@ import { Footer } from "@/components/layout/Footer";
 import { UserCard } from "@/components/users/UserCard";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import { ReelGrid } from "@/components/reels/ReelGrid";
+import { ProductGrid } from "@/components/products/ProductGrid";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SearchResults, SearchType } from "@/types/search";
-import { Search, Hash, Users, Sparkles, X, ArrowRight, TrendingUp, Clapperboard } from "lucide-react";
+import { Search, Hash, Users, Sparkles, X, ArrowRight, TrendingUp, Clapperboard, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 function SearchContent() {
@@ -106,6 +107,7 @@ function SearchContent() {
     { type: "users", label: "People", icon: Users },
     { type: "posts", label: "Posts", icon: Search },
     { type: "reels", label: "Reels", icon: Clapperboard },
+    { type: "products", label: "Products", icon: ShoppingBag },
     { type: "hashtags", label: "Tags", icon: Hash },
   ];
 
@@ -114,7 +116,8 @@ function SearchContent() {
     ((results.users?.items.length ?? 0) > 0 ||
       (results.posts?.items.length ?? 0) > 0 ||
       (results.reels?.items.length ?? 0) > 0 ||
-      (results.hashtags?.items.length ?? 0) > 0);
+      (results.hashtags?.items.length ?? 0) > 0 ||
+      (results.products?.items.length ?? 0) > 0);
 
   return (
     <div className="flex-1 max-w-5xl mx-auto w-full px-6 py-10 pt-28 lg:px-10">
@@ -379,6 +382,36 @@ function SearchContent() {
                     return {
                       reels: typed.results?.reels?.items ?? [],
                       nextCursor: typed.results?.reels?.nextCursor ?? null,
+                    };
+                  }}
+                />
+              </section>
+            )}
+
+          {/* PRODUCTS RESULTS */}
+          {(activeTab === "all" || activeTab === "products") &&
+            results?.products &&
+            results.products.items.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <ShoppingBag className="h-4 w-4 text-fuchsia-500" />
+                  <h2 className="text-base font-bold text-neutral-900 dark:text-white">
+                    Products
+                  </h2>
+                </div>
+
+                <ProductGrid
+                  fetchBaseUrl={`/api/search?q=${encodeURIComponent(query)}&type=products`}
+                  initialProducts={results.products.items}
+                  initialCursor={results.products.nextCursor}
+                  emptyMessage="No products found."
+                  extractResponse={(data) => {
+                    const typed = data as {
+                      results?: { products?: { items?: typeof results.products.items; nextCursor?: string | null } };
+                    };
+                    return {
+                      products: typed.results?.products?.items ?? [],
+                      nextCursor: typed.results?.products?.nextCursor ?? null,
                     };
                   }}
                 />
