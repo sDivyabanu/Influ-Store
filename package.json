@@ -13,6 +13,8 @@
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1121.0",
+    "@aws-sdk/s3-request-presigner": "^3.1121.0",
     "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
@@ -39,4 +41,3 @@
     "typescript": "^5"
   }
 }
-
