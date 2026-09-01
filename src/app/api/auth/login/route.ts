@@ -1,98 +1,105 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import clientPromise from "@/lib/mongodb";
+import { prisma } from "@/lib/db/prisma";
+import { verifyPassword } from "@/lib/auth/password";
+import { setSessionCookie } from "@/lib/auth/session";
+import { loginSchema } from "@/lib/validations/auth.schema";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const json = await request.json();
 
-    const { email, password } = body;
-
-    // Validate input
-    if (!email || !password) {
+    // 1. Validate request body
+    const validationResult = loginSchema.safeParse(json);
+    if (!validationResult.success) {
       return NextResponse.json(
         {
-          message: "Email and password are required",
+          success: false,
+          message: validationResult.error.errors[0]?.message || "Invalid credentials format",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    const normalizedEmail = email
-      .toLowerCase()
-      .trim();
+    const { identifier, password } = validationResult.data;
+    const normalizedIdentifier = identifier.toLowerCase().trim();
 
-    // Connect to MongoDB
-    const client = await clientPromise;
-
-    const db = client.db("influstore");
-
-    const users = db.collection("users");
-
-    // Find user
-    const user = await users.findOne({
-      email: normalizedEmail,
+    // 2. Find user by email OR username
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedIdentifier },
+          { username: normalizedIdentifier },
+        ],
+      },
+      include: {
+        profile: true,
+      },
     });
 
+    // 3. Constant-time/safe failure check
     if (!user) {
       return NextResponse.json(
         {
-          message: "Invalid email or password",
+          success: false,
+          message: "Invalid email/username or password.",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
-    // Compare password
-    const passwordMatches = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (!passwordMatches) {
+    // 4. Verify password against bcrypt hash
+    const isValid = await verifyPassword(password, user.passwordHash);
+    if (!isValid) {
       return NextResponse.json(
         {
-          message: "Invalid email or password",
+          success: false,
+          message: "Invalid email/username or password.",
         },
-        {
-          status: 401,
-        }
+        { status: 401 }
       );
     }
 
-    // Successful login
+    // 5. Create and set session cookie
+    await setSessionCookie({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+    });
+
+    // 6. Return response (never exposing passwordHash)
     return NextResponse.json(
       {
         success: true,
-        message: "Login successful",
-
+        message: "Login successful.",
         user: {
-          id: user._id.toString(),
-          name: user.name,
-          username: user.username || "",
+          id: user.id,
           email: user.email,
-          accountType: user.accountType || "customer",
+          username: user.username,
+          role: user.role,
+          profile: user.profile
+            ? {
+                id: user.profile.id,
+                displayName: user.profile.displayName,
+                bio: user.profile.bio,
+                avatarUrl: user.profile.avatarUrl,
+                website: user.profile.website,
+                accountType: user.profile.accountType,
+              }
+            : null,
         },
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
-
-  } catch (error) {
-    console.error("LOGIN ERROR:", error);
+  } catch (error: unknown) {
+    console.error("[Login API Error]:", error);
 
     return NextResponse.json(
       {
-        message: "Something went wrong while logging in",
+        success: false,
+        message: "Unable to sign in at this time. Please try again.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

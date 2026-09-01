@@ -91,7 +91,7 @@ export default function CheckoutPage() {
           <div className="mt-8 rounded-2xl border border-white/10 bg-black/40 p-5">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Order ID</span>
-              <span>#INF-{Math.floor(Math.random() * 90000) + 10000}</span>
+              <span>#INF-78421</span>
             </div>
 
             <div className="mt-4 flex justify-between">
@@ -175,9 +175,10 @@ export default function CheckoutPage() {
                     </h2>
 
                     <p className="mt-2 text-sm text-gray-500">
-                      We'll use this to send your order updates.
+                      We&apos;ll use this to send your order updates.
                     </p>
                   </div>
+
 
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div className="sm:col-span-2">
