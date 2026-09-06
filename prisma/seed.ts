@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding database for Influ-Store Phase 1...");
+  console.log("Seeding database for Influ-Store Phase 1, 2, and 3...");
 
   const passwordHash = await bcrypt.hash("Password123!", 12);
 
@@ -70,10 +70,29 @@ async function main() {
     },
   });
 
-  // 4. Seed Phase 2 social content (posts, comments, replies, likes, saves).
-  // Cleared and recreated on every run so this script stays rerunnable —
-  // posts don't have a natural unique key to upsert against.
-  console.log("Seeding Phase 2 social content...");
+  // 4. Seed Phase 3 Follow Relationships
+  console.log("Seeding Phase 3 follow graph...");
+  await prisma.follow.deleteMany({
+    where: {
+      OR: [
+        { followerId: { in: [maya.id, priya.id, alex.id] } },
+        { followingId: { in: [maya.id, priya.id, alex.id] } },
+      ],
+    },
+  });
+
+  await prisma.follow.createMany({
+    data: [
+      { followerId: maya.id, followingId: priya.id },
+      { followerId: maya.id, followingId: alex.id },
+      { followerId: priya.id, followingId: maya.id },
+      { followerId: alex.id, followingId: maya.id },
+      { followerId: alex.id, followingId: priya.id },
+    ],
+  });
+
+  // 5. Seed Phase 2 & 3 social content (posts, comments, replies, likes, saves, hashtags).
+  console.log("Seeding Phase 2 & 3 social content...");
   await prisma.post.deleteMany({ where: { authorId: { in: [maya.id, priya.id, alex.id] } } });
 
   const mayaPost1 = await prisma.post.create({
@@ -234,7 +253,55 @@ async function main() {
     },
   });
 
-  // Likes
+  // 6. Seed Hashtags & PostHashtag relations
+  console.log("Seeding Phase 3 hashtags...");
+  const hashtagNames = [
+    "fashion",
+    "minimal",
+    "lifestyle",
+    "home",
+    "style",
+    "ootd",
+    "tech",
+    "fitness",
+    "beauty",
+    "selfcare",
+  ];
+
+  const tagMap = new Map<string, string>();
+  for (const name of hashtagNames) {
+    const h = await prisma.hashtag.upsert({
+      where: { name },
+      create: { name },
+      update: {},
+    });
+    tagMap.set(name, h.id);
+  }
+
+  const postHashtagPairs: { postId: string; tags: string[] }[] = [
+    { postId: mayaPost1.id, tags: ["fashion", "minimal"] },
+    { postId: mayaPost2.id, tags: ["lifestyle"] },
+    { postId: priyaPost1.id, tags: ["home"] },
+    { postId: priyaPost2.id, tags: ["style", "ootd"] },
+    { postId: alexPost1.id, tags: ["tech", "minimal"] },
+    { postId: alexPost2.id, tags: ["fitness"] },
+    { postId: mayaPost3.id, tags: ["beauty", "selfcare"] },
+  ];
+
+  for (const pair of postHashtagPairs) {
+    for (const tag of pair.tags) {
+      const hashtagId = tagMap.get(tag);
+      if (hashtagId) {
+        await prisma.postHashtag.upsert({
+          where: { postId_hashtagId: { postId: pair.postId, hashtagId } },
+          create: { postId: pair.postId, hashtagId },
+          update: {},
+        });
+      }
+    }
+  }
+
+  // 7. Likes
   await prisma.like.createMany({
     data: [
       { postId: mayaPost1.id, userId: priya.id },
@@ -250,7 +317,7 @@ async function main() {
     ],
   });
 
-  // Comments + one-level replies
+  // 8. Comments + one-level replies
   const priyaCommentOnMaya1 = await prisma.comment.create({
     data: { postId: mayaPost1.id, authorId: priya.id, content: "Love this! 😍" },
   });
@@ -290,7 +357,7 @@ async function main() {
     data: { postId: alexPost1.id, authorId: priya.id, content: "So clean, love a minimal desk setup." },
   });
 
-  // Comment likes
+  // 9. Comment likes
   await prisma.commentLike.createMany({
     data: [
       { commentId: priyaCommentOnMaya1.id, userId: maya.id },
@@ -299,7 +366,7 @@ async function main() {
     ],
   });
 
-  // Saved posts (private per-user bookmarks)
+  // 10. Saved posts (private per-user bookmarks)
   await prisma.savedPost.createMany({
     data: [
       { userId: alex.id, postId: mayaPost1.id },
@@ -310,7 +377,7 @@ async function main() {
 
   console.log("Seeding finished successfully!");
   console.log(`Created/Verified users: @${maya.username}, @${priya.username}, @${alex.username}`);
-  console.log("Seeded 7 posts with comments, replies, likes, and saved posts.");
+  console.log("Seeded 7 posts, 5 follow relationships, and 10 indexed hashtags.");
   console.log("Default password for all seeded accounts: Password123!");
 }
 
