@@ -49,10 +49,16 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const currentUser = await getCurrentUser();
   const isOwnProfile = currentUser?.id === user.id;
 
+  const posts = await prisma.post.findMany({
+    where: { authorId: user.id },
+    include: { media: { orderBy: { order: "asc" } } },
+    orderBy: { createdAt: "desc" },
+  });
+
   const publicProfile = {
     ...user,
     counts: {
-      posts: 0,
+      posts: posts.length,
       followers: 0,
       following: 0,
     },
@@ -64,7 +70,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
 
       <div className="flex-1 pt-20">
         <ProfileHeader userProfile={publicProfile} />
-        <ProfileTabs isOwnProfile={isOwnProfile} />
+        <ProfileTabs isOwnProfile={isOwnProfile} posts={posts} />
       </div>
 
       <Footer />

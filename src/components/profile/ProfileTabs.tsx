@@ -4,7 +4,19 @@ import React, { useState } from "react";
 import { Grid, Bookmark, ShoppingBag, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
-export function ProfileTabs({ isOwnProfile = false }: { isOwnProfile?: boolean }) {
+interface ProfilePost {
+  id: string;
+  caption: string | null;
+  media: { id: string; mediaUrl: string }[];
+}
+
+export function ProfileTabs({
+  isOwnProfile = false,
+  posts = [],
+}: {
+  isOwnProfile?: boolean;
+  posts?: ProfilePost[];
+}) {
   const [activeTab, setActiveTab] = useState<"posts" | "saved" | "shop">("posts");
 
   return (
@@ -58,22 +70,41 @@ export function ProfileTabs({ isOwnProfile = false }: { isOwnProfile?: boolean }
         </div>
       </div>
 
-      {/* TAB CONTENT (PHASE 1 HONEST ZERO STATES) */}
+      {/* TAB CONTENT */}
       <div className="py-16 text-center">
         {activeTab === "posts" && (
-          <div className="mx-auto max-w-sm space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
-              <Grid className="h-7 w-7" />
+          posts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-1 text-left sm:grid-cols-3">
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className="aspect-square overflow-hidden bg-neutral-100 dark:bg-neutral-900"
+                >
+                  {post.media[0] && (
+                    <img
+                      src={post.media[0].mediaUrl}
+                      alt={post.caption || "Post"}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-              No posts yet
-            </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {isOwnProfile
-                ? "Share photos, styles, and inspiration with your audience in Phase 2."
-                : "This creator hasn't published any posts yet."}
-            </p>
-          </div>
+          ) : (
+            <div className="mx-auto max-w-sm space-y-4">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
+                <Grid className="h-7 w-7" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                No posts yet
+              </h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                {isOwnProfile
+                  ? "Share your first photo to get started."
+                  : "This creator hasn't published any posts yet."}
+              </p>
+            </div>
+          )
         )}
 
         {activeTab === "saved" && (

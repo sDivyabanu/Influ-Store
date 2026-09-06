@@ -1,16 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/features/auth/auth-context";
 
 export default function CreatePostPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [category, setCategory] = useState("Fashion");
   const [tags, setTags] = useState("");
   const [published, setPublished] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleImageChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -21,16 +28,56 @@ export default function CreatePostPage() {
 
     const imageUrl = URL.createObjectURL(file);
     setImage(imageUrl);
+    setImageFile(file);
   };
 
-  const handlePublish = (event: React.FormEvent) => {
+  const handlePublish = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError("");
 
-    setPublished(true);
+    if (!imageFile) {
+      setError("Please choose an image before publishing.");
+      return;
+    }
 
-    setTimeout(() => {
-      setPublished(false);
-    }, 3000);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", imageFile);
+      formData.append("caption", caption);
+
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setError(data.message || "Failed to publish your post. Please try again.");
+        return;
+      }
+
+      setPublished(true);
+      setImage(null);
+      setImageFile(null);
+      setCaption("");
+      setProductName("");
+      setProductPrice("");
+      setTags("");
+
+      setTimeout(() => {
+        setPublished(false);
+        if (user?.username) {
+          router.push(`/profile/${user.username}`);
+        }
+      }, 1500);
+    } catch {
+      setError("Failed to publish your post. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -102,6 +149,13 @@ export default function CreatePostPage() {
           {published && (
             <div className="mb-8 rounded-2xl border border-green-400/20 bg-green-400/10 px-5 py-4 text-sm text-green-300">
               ✓ Your post has been published successfully!
+            </div>
+          )}
+
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className="mb-8 rounded-2xl border border-red-400/20 bg-red-400/10 px-5 py-4 text-sm text-red-300">
+              {error}
             </div>
           )}
 
@@ -325,9 +379,10 @@ export default function CreatePostPage() {
 
                 <button
                   type="submit"
-                  className="flex-1 rounded-2xl bg-white px-6 py-4 font-semibold text-black transition hover:scale-[1.01] hover:bg-gray-100"
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-2xl bg-white px-6 py-4 font-semibold text-black transition hover:scale-[1.01] hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Publish post
+                  {isSubmitting ? "Publishing..." : "Publish post"}
                 </button>
 
               </div>
