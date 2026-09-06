@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
+<<<<<<< HEAD
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStorageService } from "@/lib/storage";
 import { createPostSchema } from "@/lib/validations/post.schema";
+=======
+import { getCurrentUser } from "@/lib/auth/session";
+import { createPost } from "@/lib/services/post.service";
+import { createPostSchema } from "@/lib/validations/post.schema";
+import { handleApiError } from "@/lib/api/handle-error";
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
 
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
+<<<<<<< HEAD
 
     if (!user) {
       return NextResponse.json(
@@ -14,10 +22,16 @@ export async function POST(request: Request) {
           success: false,
           message: "Unauthorized. Please log in.",
         },
+=======
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized. Please log in." },
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
         { status: 401 }
       );
     }
 
+<<<<<<< HEAD
     const formData = await request.formData();
     const image = formData.get("image");
     const caption = formData.get("caption");
@@ -96,5 +110,15 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     );
+=======
+    const json = await request.json();
+    const input = createPostSchema.parse(json);
+
+    const post = await createPost(user.id, input);
+
+    return NextResponse.json({ success: true, post }, { status: 201 });
+  } catch (error) {
+    return handleApiError(error, "Failed to create post.");
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
   }
 }

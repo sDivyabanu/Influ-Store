@@ -1,11 +1,33 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import {
   IStorageService,
+  PresignedUploadResult,
   UploadOptions,
   UploadResult,
 } from "./storage-service.interface";
 
+const PRESIGNED_UPLOAD_EXPIRY_SECONDS = 5 * 60; // 5 minutes
+
+function buildObjectKey(filename: string, folder?: string): string {
+  const cleanName = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const unique = `${Date.now()}-${crypto.randomUUID()}`;
+  return `${folder ? `${folder}/` : ""}${unique}-${cleanName}`;
+}
+
+/**
+ * Production storage backend. Fully inert until AWS_REGION,
+ * AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME are set —
+ * see isConfigured(). Never invents credentials or makes network calls
+ * when unconfigured; callers should prefer the local storage fallback
+ * (see storage/index.ts) until this is active.
+ */
 export class S3StorageService implements IStorageService {
   private readonly region: string | undefined;
   private readonly bucketName: string | undefined;
@@ -30,6 +52,14 @@ export class S3StorageService implements IStorageService {
   }
 
   private getClient(): S3Client {
+<<<<<<< HEAD
+=======
+    if (!this.isConfigured()) {
+      throw new Error(
+        "[S3StorageService] AWS S3 is not configured. Set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME."
+      );
+    }
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
     if (!this.client) {
       this.client = new S3Client({
         region: this.region,
@@ -47,19 +77,29 @@ export class S3StorageService implements IStorageService {
     filename: string,
     options?: UploadOptions
   ): Promise<UploadResult> {
+    const key = buildObjectKey(filename, options?.folder);
+    await this.getClient().send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: options?.contentType,
+      })
+    );
+
+    return { key, url: this.getPublicUrl(key) };
+  }
+
+  async createPresignedUploadUrl(
+    filename: string,
+    contentType: string,
+    options?: UploadOptions
+  ): Promise<PresignedUploadResult | null> {
     if (!this.isConfigured()) {
-      console.warn(
-        "[StorageService] AWS S3 credentials are not configured. AWS account activation pending."
-      );
-      // Fallback: Generate mock key and URL for local dev environment
-      const cleanName = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const key = `${options?.folder ? `${options.folder}/` : "avatars/"}${Date.now()}-${cleanName}`;
-      return {
-        key,
-        url: `https://placeholder-storage.influstore.local/${key}`,
-      };
+      return null;
     }
 
+<<<<<<< HEAD
     const cleanName = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
     const key = `${options?.folder ? `${options.folder}/` : ""}${Date.now()}-${cleanName}`;
 
@@ -73,10 +113,25 @@ export class S3StorageService implements IStorageService {
     );
 
     const url = this.getPublicUrl(key);
+=======
+    const key = buildObjectKey(filename, options?.folder);
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const uploadUrl = await getSignedUrl(this.getClient(), command, {
+      expiresIn: PRESIGNED_UPLOAD_EXPIRY_SECONDS,
+    });
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
 
     return {
+      uploadUrl,
+      method: "PUT",
       key,
-      url,
+      publicUrl: this.getPublicUrl(key),
+      expiresIn: PRESIGNED_UPLOAD_EXPIRY_SECONDS,
     };
   }
 
@@ -84,9 +139,6 @@ export class S3StorageService implements IStorageService {
     if (!key) return "";
     if (key.startsWith("http://") || key.startsWith("https://")) {
       return key;
-    }
-    if (!this.isConfigured()) {
-      return `https://placeholder-storage.influstore.local/${key}`;
     }
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
@@ -108,6 +160,7 @@ export class S3StorageService implements IStorageService {
   }
 
   async deleteFile(key: string): Promise<void> {
+<<<<<<< HEAD
     if (!this.isConfigured()) {
       console.warn(
         `[StorageService] AWS S3 not configured. Skipped deleting key: ${key}`
@@ -115,6 +168,9 @@ export class S3StorageService implements IStorageService {
       return;
     }
 
+=======
+    if (!this.isConfigured() || !key) return;
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
     await this.getClient().send(
       new DeleteObjectCommand({ Bucket: this.bucketName, Key: key })
     );

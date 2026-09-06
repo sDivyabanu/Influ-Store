@@ -4,7 +4,11 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Grid, Bookmark, ShoppingBag, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { FeedPost } from "@/types/post";
+import { PostGrid } from "@/components/posts/PostGrid";
+import { Button } from "@/components/ui/Button";
 
+<<<<<<< HEAD
 interface ProfilePost {
   id: string;
   caption: string | null;
@@ -18,6 +22,16 @@ export function ProfileTabs({
   isOwnProfile?: boolean;
   posts?: ProfilePost[];
 }) {
+=======
+interface ProfileTabsProps {
+  username: string;
+  isOwnProfile?: boolean;
+  initialPosts: FeedPost[];
+  initialCursor: string | null;
+}
+
+export function ProfileTabs({ username, isOwnProfile = false, initialPosts, initialCursor }: ProfileTabsProps) {
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
   const [activeTab, setActiveTab] = useState<"posts" | "saved" | "shop">("posts");
 
   return (
@@ -72,6 +86,7 @@ export function ProfileTabs({
       </div>
 
       {/* TAB CONTENT */}
+<<<<<<< HEAD
       <div className="py-16 text-center">
         {activeTab === "posts" && (
           posts.length > 0 ? (
@@ -107,24 +122,44 @@ export function ProfileTabs({
               </p>
             </div>
           )
+=======
+      <div className="py-8">
+        {activeTab === "posts" && (
+          <PostGrid
+            username={username}
+            initialPosts={initialPosts}
+            initialCursor={initialCursor}
+            emptyMessage={
+              isOwnProfile
+                ? "Share your first photo with the community."
+                : "This creator hasn't published any posts yet."
+            }
+          />
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
         )}
 
         {activeTab === "saved" && (
-          <div className="mx-auto max-w-sm space-y-4">
+          // Saved posts are private — this tab only ever renders for the
+          // profile owner, and always links to the dedicated private page
+          // rather than listing anything inline here.
+          <div className="mx-auto max-w-sm space-y-4 py-8 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
               <Bookmark className="h-7 w-7" />
             </div>
             <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-              No saved items
+              Your saved posts
             </h3>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Saved posts and bookmarked products will appear here.
+              Saved posts are private and only visible to you.
             </p>
+            <Link href="/saved">
+              <Button size="sm">View saved posts</Button>
+            </Link>
           </div>
         )}
 
         {activeTab === "shop" && (
-          <div className="mx-auto max-w-sm space-y-4">
+          <div className="mx-auto max-w-sm space-y-4 py-8 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
               <Sparkles className="h-7 w-7" />
             </div>

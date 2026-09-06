@@ -1,5 +1,8 @@
-"use client";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { CreatePostForm } from "@/components/posts/CreatePostForm";
 
+<<<<<<< HEAD
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -80,9 +83,19 @@ export default function CreatePostPage() {
     }
   };
 
-  return (
-    <main className="min-h-screen bg-black text-white">
+=======
+export const metadata = {
+  title: "Create Post | Influ-Store",
+  description: "Share photos and inspiration with the Influ-Store community.",
+};
 
+export default function CreatePostPage() {
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
+  return (
+    <main className="min-h-screen flex flex-col bg-neutral-50 dark:bg-black text-neutral-900 dark:text-white transition-colors">
+      <Navbar />
+
+<<<<<<< HEAD
       {/* NAVBAR */}
       <nav className="border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
@@ -399,10 +412,25 @@ export default function CreatePostPage() {
 
           <p>
             Discover. Influence. Shop.
+=======
+      <div className="flex-1 max-w-5xl mx-auto w-full px-6 py-10 pt-28 lg:px-10">
+        <div className="mb-8">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-500">
+            Creator Studio
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-white">
+            Create a post
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
+            Share your style and inspire the Influ-Store community.
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
           </p>
         </div>
-      </footer>
 
+        <CreatePostForm />
+      </div>
+
+      <Footer />
     </main>
   );
 }

@@ -48,13 +48,15 @@ export async function GET(
       );
     }
 
+    const postCount = await prisma.post.count({ where: { authorId: user.id } });
+
     return NextResponse.json(
       {
         success: true,
         user: {
           ...user,
           counts: {
-            posts: 0,
+            posts: postCount,
             followers: 0,
             following: 0,
           },

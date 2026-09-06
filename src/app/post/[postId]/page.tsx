@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
@@ -37,10 +38,46 @@ export default async function PostDetailPage({ params }: PostPageProps) {
     },
   });
 
+=======
+import { notFound } from "next/navigation";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { PostDetail } from "@/components/posts/PostDetail";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getPostById } from "@/lib/services/post.service";
+import { listComments } from "@/lib/services/comment.service";
+
+export const dynamic = "force-dynamic";
+
+interface PostDetailPageProps {
+  params: Promise<{ postId: string }>;
+}
+
+export async function generateMetadata({ params }: PostDetailPageProps) {
+  const { postId } = await params;
+  const post = await getPostById(postId, null);
+
+  if (!post) {
+    return { title: "Post not found | Influ-Store" };
+  }
+
+  return {
+    title: `${post.author.displayName} on Influ-Store`,
+    description: post.caption || `A post by @${post.author.username} on Influ-Store.`,
+  };
+}
+
+export default async function PostDetailPage({ params }: PostDetailPageProps) {
+  const { postId } = await params;
+  const currentUser = await getCurrentUser();
+
+  const post = await getPostById(postId, currentUser?.id ?? null);
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
   if (!post) {
     notFound();
   }
 
+<<<<<<< HEAD
   const currentUser = await getCurrentUser();
   const isOwnPost = currentUser?.id === post.authorId;
 
@@ -58,11 +95,15 @@ export default async function PostDetailPage({ params }: PostPageProps) {
     day: "numeric",
     year: "numeric",
   });
+=======
+  const commentsPage = await listComments(postId, currentUser?.id ?? null);
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
 
   return (
     <main className="min-h-screen flex flex-col bg-neutral-50 dark:bg-black text-neutral-900 dark:text-white transition-colors">
       <Navbar />
 
+<<<<<<< HEAD
       <div className="flex-1 pt-20">
         <div className="mx-auto max-w-4xl px-6 py-10 lg:px-10">
           <div className="mb-6 flex items-center justify-between">
@@ -117,6 +158,14 @@ export default async function PostDetailPage({ params }: PostPageProps) {
             </div>
           </div>
         </div>
+=======
+      <div className="flex-1 mx-auto w-full max-w-5xl px-0 py-0 pt-20 sm:px-6 sm:py-10 sm:pt-28 lg:px-10">
+        <PostDetail
+          post={post}
+          initialComments={commentsPage.items}
+          initialCommentsCursor={commentsPage.nextCursor}
+        />
+>>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
       </div>
 
       <Footer />
