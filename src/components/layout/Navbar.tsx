@@ -35,7 +35,7 @@ export function Navbar() {
 
         {/* DESKTOP NAVIGATION LINKS */}
         <div className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link) => {
+          {isAuthenticated && navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
               <Link
@@ -115,7 +115,7 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-6 py-6 backdrop-blur-2xl md:hidden animate-in slide-in-from-top duration-200">
           <div className="flex flex-col gap-2">
-            {navLinks.map((link) => {
+            {isAuthenticated && navLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link
