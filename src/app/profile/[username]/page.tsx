@@ -5,6 +5,7 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
+import { listUserPosts } from "@/lib/services/post.service";
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -49,10 +50,15 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const currentUser = await getCurrentUser();
   const isOwnProfile = currentUser?.id === user.id;
 
+  const [postCount, postsPage] = await Promise.all([
+    prisma.post.count({ where: { authorId: user.id } }),
+    listUserPosts(user.id, currentUser?.id ?? null),
+  ]);
+
   const publicProfile = {
     ...user,
     counts: {
-      posts: 0,
+      posts: postCount,
       followers: 0,
       following: 0,
     },
@@ -64,7 +70,12 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
 
       <div className="flex-1 pt-20">
         <ProfileHeader userProfile={publicProfile} />
-        <ProfileTabs isOwnProfile={isOwnProfile} />
+        <ProfileTabs
+          username={user.username}
+          isOwnProfile={isOwnProfile}
+          initialPosts={postsPage.items}
+          initialCursor={postsPage.nextCursor}
+        />
       </div>
 
       <Footer />

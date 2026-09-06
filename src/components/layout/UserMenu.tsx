@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/auth-context";
 import { Avatar } from "@/components/ui/Avatar";
-import { User, Settings, LogOut, Moon, Sun, Sparkles } from "lucide-react";
+import { User, Settings, LogOut, Moon, Sun, Sparkles, Bookmark } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function UserMenu() {
@@ -83,6 +83,15 @@ export function UserMenu() {
             >
               <Settings className="h-4 w-4 text-neutral-500" />
               <span>Edit Profile</span>
+            </Link>
+
+            <Link
+              href="/saved"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/10 transition"
+            >
+              <Bookmark className="h-4 w-4 text-neutral-500" />
+              <span>Saved</span>
             </Link>
 
             <button

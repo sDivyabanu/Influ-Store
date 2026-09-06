@@ -18,7 +18,7 @@ export function Navbar() {
     { href: "/home", label: "Feed", icon: Home, badge: null },
     { href: "/explore", label: "Explore", icon: Compass, badge: "Soon" },
     { href: "/products", label: "Shop", icon: ShoppingBag, badge: "Soon" },
-    { href: "/create-post", label: "Create", icon: PlusSquare, badge: "Soon" },
+    { href: "/create-post", label: "Create", icon: PlusSquare, badge: null },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
   ];
 
