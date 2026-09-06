@@ -1,17 +1,4 @@
 import { z } from "zod";
-<<<<<<< HEAD
-
-export const createPostSchema = z.object({
-  caption: z
-    .string()
-    .trim()
-    .max(500, "Caption cannot exceed 500 characters")
-    .optional()
-    .nullable(),
-});
-
-export type CreatePostFormData = z.infer<typeof createPostSchema>;
-=======
 import {
   MAX_POST_MEDIA_COUNT,
   MIN_POST_MEDIA_COUNT,
@@ -48,4 +35,3 @@ export const updatePostSchema = z.object({
   caption: captionSchema.nullable(),
 });
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8

@@ -8,21 +8,6 @@ import { FeedPost } from "@/types/post";
 import { PostGrid } from "@/components/posts/PostGrid";
 import { Button } from "@/components/ui/Button";
 
-<<<<<<< HEAD
-interface ProfilePost {
-  id: string;
-  caption: string | null;
-  media: { id: string; mediaUrl: string }[];
-}
-
-export function ProfileTabs({
-  isOwnProfile = false,
-  posts = [],
-}: {
-  isOwnProfile?: boolean;
-  posts?: ProfilePost[];
-}) {
-=======
 interface ProfileTabsProps {
   username: string;
   isOwnProfile?: boolean;
@@ -31,7 +16,6 @@ interface ProfileTabsProps {
 }
 
 export function ProfileTabs({ username, isOwnProfile = false, initialPosts, initialCursor }: ProfileTabsProps) {
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
   const [activeTab, setActiveTab] = useState<"posts" | "saved" | "shop">("posts");
 
   return (
@@ -86,43 +70,6 @@ export function ProfileTabs({ username, isOwnProfile = false, initialPosts, init
       </div>
 
       {/* TAB CONTENT */}
-<<<<<<< HEAD
-      <div className="py-16 text-center">
-        {activeTab === "posts" && (
-          posts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-1 text-left sm:grid-cols-3">
-              {posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/post/${post.id}`}
-                  className="aspect-square block cursor-pointer overflow-hidden bg-neutral-100 dark:bg-neutral-900 transition hover:opacity-90"
-                >
-                  {post.media[0] && (
-                    <img
-                      src={post.media[0].mediaUrl}
-                      alt={post.caption || "Post"}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="mx-auto max-w-sm space-y-4">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
-                <Grid className="h-7 w-7" />
-              </div>
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-                No posts yet
-              </h3>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                {isOwnProfile
-                  ? "Share your first photo to get started."
-                  : "This creator hasn't published any posts yet."}
-              </p>
-            </div>
-          )
-=======
       <div className="py-8">
         {activeTab === "posts" && (
           <PostGrid
@@ -135,7 +82,6 @@ export function ProfileTabs({ username, isOwnProfile = false, initialPosts, init
                 : "This creator hasn't published any posts yet."
             }
           />
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
         )}
 
         {activeTab === "saved" && (

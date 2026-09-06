@@ -9,19 +9,8 @@ function getAuthSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-<<<<<<< HEAD:src/proxy.ts
 // Public paths that do not require an authenticated session
 const publicPaths = ["/", "/login", "/register", "/signup"];
-=======
-// Protected route prefixes that require an authenticated session
-const protectedRoutes = [
-  "/settings",
-  "/api/profile",
-  "/saved",
-  "/api/saved",
-  "/create-post",
-];
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8:src/middleware.ts
 
 // Auth routes where authenticated users should be redirected away
 const authRoutes = ["/login", "/register", "/signup"];

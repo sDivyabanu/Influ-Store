@@ -5,11 +5,7 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
-<<<<<<< HEAD
-import { getStorageService } from "@/lib/storage";
-=======
 import { listUserPosts } from "@/lib/services/post.service";
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -54,40 +50,15 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const currentUser = await getCurrentUser();
   const isOwnProfile = currentUser?.id === user.id;
 
-<<<<<<< HEAD
-  const rawPosts = await prisma.post.findMany({
-    where: { authorId: user.id },
-    include: { media: { orderBy: { order: "asc" } } },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const storage = getStorageService();
-  const posts = await Promise.all(
-    rawPosts.map(async (post) => ({
-      ...post,
-      media: await Promise.all(
-        post.media.map(async (m) => ({
-          ...m,
-          mediaUrl: await storage.getSignedReadUrl(m.mediaKey),
-        }))
-      ),
-    }))
-  );
-=======
   const [postCount, postsPage] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id } }),
     listUserPosts(user.id, currentUser?.id ?? null),
   ]);
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
 
   const publicProfile = {
     ...user,
     counts: {
-<<<<<<< HEAD
-      posts: posts.length,
-=======
       posts: postCount,
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
       followers: 0,
       following: 0,
     },
@@ -99,16 +70,12 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
 
       <div className="flex-1 pt-20">
         <ProfileHeader userProfile={publicProfile} />
-<<<<<<< HEAD
-        <ProfileTabs isOwnProfile={isOwnProfile} posts={posts} />
-=======
         <ProfileTabs
           username={user.username}
           isOwnProfile={isOwnProfile}
           initialPosts={postsPage.items}
           initialCursor={postsPage.nextCursor}
         />
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
       </div>
 
       <Footer />

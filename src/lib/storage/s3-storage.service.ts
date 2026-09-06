@@ -1,8 +1,7 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -52,14 +51,11 @@ export class S3StorageService implements IStorageService {
   }
 
   private getClient(): S3Client {
-<<<<<<< HEAD
-=======
     if (!this.isConfigured()) {
       throw new Error(
         "[S3StorageService] AWS S3 is not configured. Set AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME."
       );
     }
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
     if (!this.client) {
       this.client = new S3Client({
         region: this.region,
@@ -99,21 +95,6 @@ export class S3StorageService implements IStorageService {
       return null;
     }
 
-<<<<<<< HEAD
-    const cleanName = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const key = `${options?.folder ? `${options.folder}/` : ""}${Date.now()}-${cleanName}`;
-
-    await this.getClient().send(
-      new PutObjectCommand({
-        Bucket: this.bucketName,
-        Key: key,
-        Body: fileBuffer,
-        ContentType: options?.contentType,
-      })
-    );
-
-    const url = this.getPublicUrl(key);
-=======
     const key = buildObjectKey(filename, options?.folder);
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
@@ -124,7 +105,6 @@ export class S3StorageService implements IStorageService {
     const uploadUrl = await getSignedUrl(this.getClient(), command, {
       expiresIn: PRESIGNED_UPLOAD_EXPIRY_SECONDS,
     });
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
 
     return {
       uploadUrl,
@@ -143,6 +123,10 @@ export class S3StorageService implements IStorageService {
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
+  /**
+   * The bucket denies public reads, so any URL handed to a browser must be
+   * signed per-request rather than the permanent getPublicUrl() value.
+   */
   async getSignedReadUrl(key: string): Promise<string> {
     if (!key) return "";
     if (key.startsWith("http://") || key.startsWith("https://")) {
@@ -160,17 +144,7 @@ export class S3StorageService implements IStorageService {
   }
 
   async deleteFile(key: string): Promise<void> {
-<<<<<<< HEAD
-    if (!this.isConfigured()) {
-      console.warn(
-        `[StorageService] AWS S3 not configured. Skipped deleting key: ${key}`
-      );
-      return;
-    }
-
-=======
     if (!this.isConfigured() || !key) return;
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
     await this.getClient().send(
       new DeleteObjectCommand({ Bucket: this.bucketName, Key: key })
     );
