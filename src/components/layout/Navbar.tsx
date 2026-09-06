@@ -16,17 +16,10 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/home", label: "Feed", icon: Home, badge: null },
-<<<<<<< HEAD
     { href: "/explore", label: "Explore", icon: Compass, badge: null },
     { href: "/products", label: "Shop", icon: ShoppingBag, badge: null },
     { href: "/create-post", label: "Create", icon: PlusSquare, badge: null },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: null },
-=======
-    { href: "/explore", label: "Explore", icon: Compass, badge: "Soon" },
-    { href: "/products", label: "Shop", icon: ShoppingBag, badge: "Soon" },
-    { href: "/create-post", label: "Create", icon: PlusSquare, badge: null },
-    { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
->>>>>>> 732ebb33b08dfcc1734f00f9df6a62197a6bbfe8
   ];
 
   return (
