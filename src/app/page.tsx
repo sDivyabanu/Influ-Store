@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 const trendingProducts = [
@@ -50,7 +49,26 @@ const features = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-neutral-50 dark:bg-black text-neutral-900 dark:text-white transition-colors">
-      <Navbar />
+      {/* AUTH ENTRY BAR */}
+      <header className="flex items-center justify-between px-6 py-6 lg:px-10">
+        <span className="text-lg font-bold tracking-tight">Influstore</span>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300 transition hover:text-neutral-900 dark:hover:text-white"
+          >
+            Log in
+          </Link>
+
+          <Link
+            href="/register"
+            className="rounded-full bg-neutral-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-black transition hover:scale-105 shadow-md"
+          >
+            Sign up
+          </Link>
+        </div>
+      </header>
 
       {/* HERO */}
       <section className="relative flex min-h-screen items-center overflow-hidden px-6 pt-20 lg:px-10">

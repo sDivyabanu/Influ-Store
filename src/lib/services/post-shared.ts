@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { FeedPost, PostAuthor } from "@/types/post";
+import { getStorageService } from "@/lib/storage";
 
 /**
  * Shared Prisma include shapes + serializers used by feed.service.ts,
@@ -44,24 +45,34 @@ export function toPostAuthor(user: {
   };
 }
 
-export function serializePost(
+/**
+ * The bucket denies public reads, so the mediaUrl stored at upload time is
+ * not browser-accessible — every read path must re-sign it here rather
+ * than trusting the persisted value.
+ */
+export async function serializePost(
   post: PostWithRelations,
   currentUserId: string | null
-): FeedPost {
+): Promise<FeedPost> {
+  const storage = getStorageService();
+  const media = await Promise.all(
+    post.media.map(async (m) => ({
+      id: m.id,
+      mediaUrl: await storage.getSignedReadUrl(m.mediaKey),
+      mediaType: m.mediaType,
+      order: m.order,
+      width: m.width,
+      height: m.height,
+    }))
+  );
+
   return {
     id: post.id,
     caption: post.caption,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     author: toPostAuthor(post.author),
-    media: post.media.map((m) => ({
-      id: m.id,
-      mediaUrl: m.mediaUrl,
-      mediaType: m.mediaType,
-      order: m.order,
-      width: m.width,
-      height: m.height,
-    })),
+    media,
     likeCount: post._count.likes,
     commentCount: post._count.comments,
     likedByMe: currentUserId ? post.likes.length > 0 : false,

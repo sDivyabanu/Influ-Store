@@ -164,7 +164,7 @@ export async function getHashtagPosts(
       postCount: hashtag._count.posts,
     },
     posts: {
-      items: page.map((ph) => serializePost(ph.post, currentUserId)),
+      items: await Promise.all(page.map((ph) => serializePost(ph.post, currentUserId))),
       nextCursor: hasMore ? page[page.length - 1].postId : null,
     },
   };
