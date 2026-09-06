@@ -41,6 +41,10 @@ model User {
   commentLikes CommentLike[]
   savedPosts   SavedPost[]
 
+  // Phase 3 Follow relations
+  following Follow[] @relation("UserFollowing")
+  followers Follow[] @relation("UserFollowers")
+
   @@index([username])
   @@index([email])
   @@map("users")
@@ -71,11 +75,12 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author   User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   media    PostMedia[]
   likes    Like[]
   comments Comment[]
   savedBy  SavedPost[]
+  hashtags PostHashtag[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -164,4 +169,45 @@ model SavedPost {
   @@index([userId])
   @@index([postId])
   @@map("saved_posts")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Hashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  posts PostHashtag[]
+
+  @@index([name])
+  @@map("hashtags")
+}
+
+model PostHashtag {
+  id        String   @id @default(cuid())
+  postId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, hashtagId])
+  @@index([postId])
+  @@index([hashtagId])
+  @@map("post_hashtags")
 }

@@ -1,31 +1,36 @@
 import { AccountType, Role } from "@prisma/client";
 
-export interface PublicUserProfile {
+export interface UserCardItem {
   id: string;
   username: string;
   role: Role;
-  createdAt: string | Date;
+  createdAt: Date | string;
   profile: {
-    id: string;
     displayName: string;
     bio: string | null;
     avatarUrl: string | null;
     website: string | null;
     accountType: AccountType;
   } | null;
-  counts: {
+  counts?: {
     posts: number;
     followers: number;
     following: number;
   };
   isFollowing?: boolean;
   isSelf?: boolean;
+  mutualCount?: number;
 }
 
-export interface ProfileUpdateInput {
-  displayName?: string;
-  username?: string;
-  bio?: string | null;
-  website?: string | null;
-  avatarUrl?: string | null;
+export interface FollowToggleResponse {
+  success: boolean;
+  isFollowing: boolean;
+  followerCount: number;
+  followingCount: number;
+  message?: string;
+}
+
+export interface FollowCounts {
+  followers: number;
+  following: number;
 }

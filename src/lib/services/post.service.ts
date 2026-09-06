@@ -6,6 +6,7 @@ import { CreatePostInput } from "@/lib/validations/post.schema";
 import { CursorPage, FeedPost } from "@/types/post";
 import { postInclude, serializePost } from "./post-shared";
 import { assertMediaKeysOwnedByUser } from "./media-upload.service";
+import { syncPostHashtags } from "./hashtag.service";
 
 export async function getPostById(
   postId: string,
@@ -51,6 +52,9 @@ export async function createPost(
       })),
     });
 
+    // Sync hashtags within transaction
+    await syncPostHashtags(tx, created.id, input.caption?.trim() || null);
+
     return created.id;
   });
 
@@ -73,9 +77,16 @@ export async function updatePostCaption(
     throw new ForbiddenError("You can only edit your own posts.");
   }
 
-  await prisma.post.update({
-    where: { id: postId },
-    data: { caption: caption?.trim() || null },
+  const trimmedCaption = caption?.trim() || null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.post.update({
+      where: { id: postId },
+      data: { caption: trimmedCaption },
+    });
+
+    // Synchronize hashtags with new caption
+    await syncPostHashtags(tx, postId, trimmedCaption);
   });
 
   const post = await getPostById(postId, userId);
@@ -93,7 +104,7 @@ export async function deletePost(postId: string, userId: string): Promise<void> 
     throw new ForbiddenError("You can only delete your own posts.");
   }
 
-  // Cascade deletes PostMedia/Like/Comment/CommentLike/SavedPost rows via FKs.
+  // Cascade deletes PostMedia/Like/Comment/CommentLike/SavedPost/PostHashtag rows via FKs.
   await prisma.post.delete({ where: { id: postId } });
 
   const storage = getStorageService();
