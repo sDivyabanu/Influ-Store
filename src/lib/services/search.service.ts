@@ -159,7 +159,7 @@ export async function searchReels(
   const followingAuthorIds = await getFollowingAuthorIds(currentUserId, authorIds);
 
   return {
-    items: page.map((r) => serializeReel(r, currentUserId, followingAuthorIds)),
+    items: await Promise.all(page.map((r) => serializeReel(r, currentUserId, followingAuthorIds))),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }

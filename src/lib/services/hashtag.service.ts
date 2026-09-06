@@ -223,7 +223,7 @@ export async function getHashtagReels(
       reelCount: hashtag._count.reels,
     },
     reels: {
-      items: page.map((rh) => serializeReel(rh.reel, currentUserId, followingAuthorIds)),
+      items: await Promise.all(page.map((rh) => serializeReel(rh.reel, currentUserId, followingAuthorIds))),
       nextCursor: hasMore ? page[page.length - 1].reelId : null,
     },
   };
