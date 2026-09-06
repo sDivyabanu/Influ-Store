@@ -24,6 +24,11 @@ export interface IStorageService {
   getPublicUrl(key: string): string;
 
   /**
+   * Generates a time-limited signed URL to read a private object by key
+   */
+  getSignedReadUrl(key: string): Promise<string>;
+
+  /**
    * Deletes a file from storage by key
    */
   deleteFile(key: string): Promise<void>;

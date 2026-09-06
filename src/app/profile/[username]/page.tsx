@@ -5,6 +5,7 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getStorageService } from "@/lib/storage";
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -49,11 +50,24 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const currentUser = await getCurrentUser();
   const isOwnProfile = currentUser?.id === user.id;
 
-  const posts = await prisma.post.findMany({
+  const rawPosts = await prisma.post.findMany({
     where: { authorId: user.id },
     include: { media: { orderBy: { order: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
+
+  const storage = getStorageService();
+  const posts = await Promise.all(
+    rawPosts.map(async (post) => ({
+      ...post,
+      media: await Promise.all(
+        post.media.map(async (m) => ({
+          ...m,
+          mediaUrl: await storage.getSignedReadUrl(m.mediaKey),
+        }))
+      ),
+    }))
+  );
 
   const publicProfile = {
     ...user,

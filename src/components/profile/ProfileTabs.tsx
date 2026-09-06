@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Grid, Bookmark, ShoppingBag, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -76,9 +77,10 @@ export function ProfileTabs({
           posts.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 text-left sm:grid-cols-3">
               {posts.map((post) => (
-                <div
+                <Link
                   key={post.id}
-                  className="aspect-square overflow-hidden bg-neutral-100 dark:bg-neutral-900"
+                  href={`/post/${post.id}`}
+                  className="aspect-square block cursor-pointer overflow-hidden bg-neutral-100 dark:bg-neutral-900 transition hover:opacity-90"
                 >
                   {post.media[0] && (
                     <img
@@ -87,7 +89,7 @@ export function ProfileTabs({
                       className="h-full w-full object-cover"
                     />
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
