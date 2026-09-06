@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Avatar } from "@/components/ui/Avatar";
+import { PostActions } from "@/components/post/PostActions";
 import { prisma } from "@/lib/db/prisma";
 import { getStorageService } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/auth/session";
 
 interface PostPageProps {
   params: Promise<{ postId: string }>;
@@ -39,6 +41,9 @@ export default async function PostDetailPage({ params }: PostPageProps) {
     notFound();
   }
 
+  const currentUser = await getCurrentUser();
+  const isOwnPost = currentUser?.id === post.authorId;
+
   const storage = getStorageService();
   const media = await Promise.all(
     post.media.map(async (m) => ({
@@ -60,24 +65,34 @@ export default async function PostDetailPage({ params }: PostPageProps) {
 
       <div className="flex-1 pt-20">
         <div className="mx-auto max-w-4xl px-6 py-10 lg:px-10">
-          <Link
-            href={`/profile/${post.author.username}`}
-            className="mb-6 flex items-center gap-3"
-          >
-            <Avatar
-              src={post.author.profile?.avatarUrl}
-              name={displayName}
-              size="md"
-            />
-            <div>
-              <p className="font-semibold text-neutral-900 dark:text-white">
-                {displayName}
-              </p>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                @{post.author.username}
-              </p>
-            </div>
-          </Link>
+          <div className="mb-6 flex items-center justify-between">
+            <Link
+              href={`/profile/${post.author.username}`}
+              className="flex items-center gap-3"
+            >
+              <Avatar
+                src={post.author.profile?.avatarUrl}
+                name={displayName}
+                size="md"
+              />
+              <div>
+                <p className="font-semibold text-neutral-900 dark:text-white">
+                  {displayName}
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  @{post.author.username}
+                </p>
+              </div>
+            </Link>
+
+            {isOwnPost && (
+              <PostActions
+                postId={post.id}
+                authorUsername={post.author.username}
+                initialCaption={post.caption || ""}
+              />
+            )}
+          </div>
 
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="overflow-hidden rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900">
