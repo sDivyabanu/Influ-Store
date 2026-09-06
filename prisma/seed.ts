@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding database for Influ-Store Phase 1, 2, and 3...");
+  console.log("Seeding database for Influ-Store Phase 1, 2, 3, and 4...");
 
   const passwordHash = await bcrypt.hash("Password123!", 12);
 
@@ -375,9 +375,124 @@ async function main() {
     ],
   });
 
+  // 11. Seed Phase 4 reels (short-form video). CC0 sample clips from MDN's
+  // interactive-examples media bucket — free to use, reliably hosted.
+  console.log("Seeding Phase 4 reels...");
+  await prisma.reel.deleteMany({ where: { authorId: { in: [maya.id, priya.id, alex.id] } } });
+
+  const mayaReel1 = await prisma.reel.create({
+    data: {
+      authorId: maya.id,
+      caption: "Behind the scenes of today's shoot 🎬 #fashion",
+      mediaKey: "seed/mayacarter/reel1.mp4",
+      mediaUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      duration: 10,
+      width: 640,
+      height: 360,
+    },
+  });
+
+  const priyaReel1 = await prisma.reel.create({
+    data: {
+      authorId: priya.id,
+      caption: "A little #ootd inspo to start your week ✨",
+      mediaKey: "seed/priya/reel1.mp4",
+      mediaUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4",
+      duration: 12,
+      width: 640,
+      height: 360,
+    },
+  });
+
+  const alexReel1 = await prisma.reel.create({
+    data: {
+      authorId: alex.id,
+      caption: "Quick tour of my minimal desk setup #tech #minimal",
+      mediaKey: "seed/alexm/reel1.mp4",
+      mediaUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/bumblebee.mp4",
+      duration: 8,
+      width: 640,
+      height: 360,
+    },
+  });
+
+  const mayaReel2 = await prisma.reel.create({
+    data: {
+      authorId: maya.id,
+      caption: "Morning routine essentials #lifestyle",
+      mediaKey: "seed/mayacarter/reel2.mp4",
+      mediaUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/small.mp4",
+      duration: 15,
+      width: 560,
+      height: 320,
+    },
+  });
+
+  // Reel hashtags (reusing the same tagMap from post hashtag seeding above)
+  const reelHashtagPairs: { reelId: string; tags: string[] }[] = [
+    { reelId: mayaReel1.id, tags: ["fashion"] },
+    { reelId: priyaReel1.id, tags: ["ootd"] },
+    { reelId: alexReel1.id, tags: ["tech", "minimal"] },
+    { reelId: mayaReel2.id, tags: ["lifestyle"] },
+  ];
+
+  for (const pair of reelHashtagPairs) {
+    for (const tag of pair.tags) {
+      const hashtagId = tagMap.get(tag);
+      if (hashtagId) {
+        await prisma.reelHashtag.upsert({
+          where: { reelId_hashtagId: { reelId: pair.reelId, hashtagId } },
+          create: { reelId: pair.reelId, hashtagId },
+          update: {},
+        });
+      }
+    }
+  }
+
+  // Reel likes
+  await prisma.reelLike.createMany({
+    data: [
+      { reelId: mayaReel1.id, userId: priya.id },
+      { reelId: mayaReel1.id, userId: alex.id },
+      { reelId: priyaReel1.id, userId: maya.id },
+      { reelId: alexReel1.id, userId: maya.id },
+      { reelId: alexReel1.id, userId: priya.id },
+      { reelId: mayaReel2.id, userId: alex.id },
+    ],
+  });
+
+  // Reel comments + one reply
+  const priyaCommentOnMayaReel1 = await prisma.reelComment.create({
+    data: { reelId: mayaReel1.id, authorId: priya.id, content: "This came out so good! 🔥" },
+  });
+  await prisma.reelComment.create({
+    data: {
+      reelId: mayaReel1.id,
+      authorId: maya.id,
+      parentId: priyaCommentOnMayaReel1.id,
+      content: "Thank you!! 🥹",
+    },
+  });
+  await prisma.reelComment.create({
+    data: { reelId: alexReel1.id, authorId: maya.id, content: "Need this desk setup in my life." },
+  });
+
+  // Reel comment likes
+  await prisma.reelCommentLike.createMany({
+    data: [{ reelCommentId: priyaCommentOnMayaReel1.id, userId: alex.id }],
+  });
+
+  // Saved reels (private per-user bookmarks)
+  await prisma.savedReel.createMany({
+    data: [
+      { userId: alex.id, reelId: mayaReel1.id },
+      { userId: maya.id, reelId: priyaReel1.id },
+    ],
+  });
+
   console.log("Seeding finished successfully!");
   console.log(`Created/Verified users: @${maya.username}, @${priya.username}, @${alex.username}`);
-  console.log("Seeded 7 posts, 5 follow relationships, and 10 indexed hashtags.");
+  console.log("Seeded 7 posts, 4 reels, 5 follow relationships, and indexed hashtags.");
   console.log("Default password for all seeded accounts: Password123!");
 }
 

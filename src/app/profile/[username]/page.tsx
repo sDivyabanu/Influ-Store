@@ -6,6 +6,7 @@ import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listUserPosts } from "@/lib/services/post.service";
+import { listUserReels } from "@/lib/services/reel.service";
 import { isUserFollowing } from "@/lib/services/follow.service";
 
 interface ProfilePageProps {
@@ -58,8 +59,9 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const currentUser = await getCurrentUser();
   const isOwnProfile = currentUser?.id === user.id;
 
-  const [postsPage, isFollowing] = await Promise.all([
+  const [postsPage, reelsPage, isFollowing] = await Promise.all([
     listUserPosts(user.id, currentUser?.id ?? null),
+    listUserReels(user.id, currentUser?.id ?? null),
     isUserFollowing(currentUser?.id ?? null, user.id),
   ]);
 
@@ -89,6 +91,8 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
           isOwnProfile={isOwnProfile}
           initialPosts={postsPage.items}
           initialCursor={postsPage.nextCursor}
+          initialReels={reelsPage.items}
+          initialReelsCursor={reelsPage.nextCursor}
         />
       </div>
 

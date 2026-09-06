@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ExploreGrid } from "@/components/explore/ExploreGrid";
+import { HashtagTabs } from "@/components/hashtag/HashtagTabs";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getHashtagPosts } from "@/lib/services/hashtag.service";
+import { getHashtagPosts, getHashtagReels } from "@/lib/services/hashtag.service";
 import { Hash, ArrowLeft } from "lucide-react";
 
 interface HashtagPageProps {
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: HashtagPageProps) {
   const cleanTag = tag.replace(/^#/, "");
   return {
     title: `#${cleanTag} posts | Influ-Store`,
-    description: `Discover top posts tagged with #${cleanTag} on Influ-Store.`,
+    description: `Discover top posts and reels tagged with #${cleanTag} on Influ-Store.`,
   };
 }
 
@@ -24,9 +24,13 @@ export default async function HashtagPage({ params }: HashtagPageProps) {
   const cleanTag = tag.replace(/^#/, "").toLowerCase();
 
   const user = await getCurrentUser();
-  const result = await getHashtagPosts(cleanTag, user?.id ?? null, null, 24);
+  const [postsResult, reelsResult] = await Promise.all([
+    getHashtagPosts(cleanTag, user?.id ?? null, null, 24),
+    getHashtagReels(cleanTag, user?.id ?? null, null, 24),
+  ]);
 
-  const postCount = result.hashtag?.postCount ?? result.posts.items.length;
+  const postCount = postsResult.hashtag?.postCount ?? postsResult.posts.items.length;
+  const reelCount = reelsResult.hashtag?.reelCount ?? reelsResult.reels.items.length;
 
   return (
     <main className="min-h-screen flex flex-col bg-neutral-50 dark:bg-black text-neutral-900 dark:text-white transition-colors">
@@ -56,20 +60,25 @@ export default async function HashtagPage({ params }: HashtagPageProps) {
                 <span className="font-semibold text-neutral-900 dark:text-white">
                   {postCount.toLocaleString()}
                 </span>{" "}
-                post{postCount === 1 ? "" : "s"} with this hashtag
+                post{postCount === 1 ? "" : "s"}
+                {" · "}
+                <span className="font-semibold text-neutral-900 dark:text-white">
+                  {reelCount.toLocaleString()}
+                </span>{" "}
+                reel{reelCount === 1 ? "" : "s"}
               </p>
             </div>
           </div>
         </div>
 
-        {/* POSTS GRID */}
-        <div>
-          <ExploreGrid
-            initialPosts={result.posts.items}
-            initialCursor={result.posts.nextCursor}
-            category={`#${cleanTag}`}
-          />
-        </div>
+        {/* POSTS / REELS TABS */}
+        <HashtagTabs
+          tag={cleanTag}
+          initialPosts={postsResult.posts.items}
+          initialPostsCursor={postsResult.posts.nextCursor}
+          initialReels={reelsResult.reels.items}
+          initialReelsCursor={reelsResult.reels.nextCursor}
+        />
       </div>
 
       <Footer />

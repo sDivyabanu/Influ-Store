@@ -1,4 +1,5 @@
 import { FeedPost, CursorPage } from "@/types/post";
+import { ReelItem } from "@/types/reel";
 import { UserCardItem } from "@/types/follow";
 
 export interface HashtagItem {
@@ -7,11 +8,12 @@ export interface HashtagItem {
   postCount: number;
 }
 
-export type SearchType = "all" | "users" | "posts" | "hashtags";
+export type SearchType = "all" | "users" | "posts" | "reels" | "hashtags";
 
 export interface SearchResults {
   users: CursorPage<UserCardItem>;
   posts: CursorPage<FeedPost>;
+  reels: CursorPage<ReelItem>;
   hashtags: CursorPage<HashtagItem>;
 }
 
@@ -22,6 +24,7 @@ export interface GlobalSearchResponse {
   results: {
     users?: CursorPage<UserCardItem>;
     posts?: CursorPage<FeedPost>;
+    reels?: CursorPage<ReelItem>;
     hashtags?: CursorPage<HashtagItem>;
   };
 }

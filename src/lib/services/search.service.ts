@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db/prisma";
 import { CursorPage, FeedPost } from "@/types/post";
+import { ReelItem } from "@/types/reel";
 import { UserCardItem } from "@/types/follow";
 import { HashtagItem, SearchResults, SearchType } from "@/types/search";
 import { postInclude, serializePost } from "./post-shared";
+import { reelInclude, serializeReel, getFollowingAuthorIds } from "./reel-shared";
 
 /**
  * Searches users by username or displayName using case-insensitive partial match.
@@ -127,6 +129,42 @@ export async function searchPosts(
 }
 
 /**
+ * Searches reels by caption text with case-insensitive partial match.
+ * Mirrors searchPosts.
+ */
+export async function searchReels(
+  query: string,
+  currentUserId: string | null,
+  cursor?: string | null,
+  limit: number = 20
+): Promise<CursorPage<ReelItem>> {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) {
+    return { items: [], nextCursor: null };
+  }
+
+  const reels = await prisma.reel.findMany({
+    where: {
+      caption: { contains: cleanQuery, mode: "insensitive" },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    include: reelInclude(currentUserId),
+  });
+
+  const hasMore = reels.length > limit;
+  const page = hasMore ? reels.slice(0, limit) : reels;
+  const authorIds = Array.from(new Set(page.map((r) => r.authorId)));
+  const followingAuthorIds = await getFollowingAuthorIds(currentUserId, authorIds);
+
+  return {
+    items: page.map((r) => serializeReel(r, currentUserId, followingAuthorIds)),
+    nextCursor: hasMore ? page[page.length - 1].id : null,
+  };
+}
+
+/**
  * Searches hashtags by name with case-insensitive partial match.
  */
 export async function searchHashtags(
@@ -167,7 +205,7 @@ export async function searchHashtags(
 }
 
 /**
- * Executes a unified global search across users, posts, and hashtags.
+ * Executes a unified global search across users, posts, reels, and hashtags.
  */
 export async function globalSearch(
   query: string,
@@ -176,43 +214,36 @@ export async function globalSearch(
   cursor?: string | null,
   limit: number = 20
 ): Promise<SearchResults> {
+  const empty = {
+    users: { items: [], nextCursor: null },
+    posts: { items: [], nextCursor: null },
+    reels: { items: [], nextCursor: null },
+    hashtags: { items: [], nextCursor: null },
+  } satisfies SearchResults;
+
   if (type === "users") {
-    const users = await searchUsers(query, currentUserId, cursor, limit);
-    return {
-      users,
-      posts: { items: [], nextCursor: null },
-      hashtags: { items: [], nextCursor: null },
-    };
+    return { ...empty, users: await searchUsers(query, currentUserId, cursor, limit) };
   }
 
   if (type === "posts") {
-    const posts = await searchPosts(query, currentUserId, cursor, limit);
-    return {
-      users: { items: [], nextCursor: null },
-      posts,
-      hashtags: { items: [], nextCursor: null },
-    };
+    return { ...empty, posts: await searchPosts(query, currentUserId, cursor, limit) };
+  }
+
+  if (type === "reels") {
+    return { ...empty, reels: await searchReels(query, currentUserId, cursor, limit) };
   }
 
   if (type === "hashtags") {
-    const hashtags = await searchHashtags(query, cursor, limit);
-    return {
-      users: { items: [], nextCursor: null },
-      posts: { items: [], nextCursor: null },
-      hashtags,
-    };
+    return { ...empty, hashtags: await searchHashtags(query, cursor, limit) };
   }
 
   // Type "all": Fetch top matches for all categories in parallel
-  const [users, posts, hashtags] = await Promise.all([
+  const [users, posts, reels, hashtags] = await Promise.all([
     searchUsers(query, currentUserId, undefined, 5),
     searchPosts(query, currentUserId, undefined, 10),
+    searchReels(query, currentUserId, undefined, 10),
     searchHashtags(query, undefined, 5),
   ]);
 
-  return {
-    users,
-    posts,
-    hashtags,
-  };
+  return { users, posts, reels, hashtags };
 }
