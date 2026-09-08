@@ -164,7 +164,7 @@ export async function getHashtagPosts(
       postCount: hashtag._count.posts,
     },
     posts: {
-      items: page.map((ph) => serializePost(ph.post, currentUserId)),
+      items: await Promise.all(page.map((ph) => serializePost(ph.post, currentUserId))),
       nextCursor: hasMore ? page[page.length - 1].postId : null,
     },
   };
@@ -223,7 +223,7 @@ export async function getHashtagReels(
       reelCount: hashtag._count.reels,
     },
     reels: {
-      items: page.map((rh) => serializeReel(rh.reel, currentUserId, followingAuthorIds)),
+      items: await Promise.all(page.map((rh) => serializeReel(rh.reel, currentUserId, followingAuthorIds))),
       nextCursor: hasMore ? page[page.length - 1].reelId : null,
     },
   };

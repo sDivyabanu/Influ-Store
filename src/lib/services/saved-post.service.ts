@@ -46,7 +46,7 @@ export async function listSavedPosts(
   const page = hasMore ? saved.slice(0, limit) : saved;
 
   return {
-    items: page.map((s) => serializePost(s.post, userId)),
+    items: await Promise.all(page.map((s) => serializePost(s.post, userId))),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }

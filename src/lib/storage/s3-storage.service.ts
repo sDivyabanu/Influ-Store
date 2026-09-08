@@ -1,6 +1,7 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -120,6 +121,26 @@ export class S3StorageService implements IStorageService {
       return key;
     }
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
+  }
+
+  /**
+   * The bucket denies public reads, so any URL handed to a browser must be
+   * signed per-request rather than the permanent getPublicUrl() value.
+   */
+  async getSignedReadUrl(key: string): Promise<string> {
+    if (!key) return "";
+    if (key.startsWith("http://") || key.startsWith("https://")) {
+      return key;
+    }
+    if (!this.isConfigured()) {
+      return this.getPublicUrl(key);
+    }
+
+    return getSignedUrl(
+      this.getClient(),
+      new GetObjectCommand({ Bucket: this.bucketName, Key: key }),
+      { expiresIn: 3600 }
+    );
   }
 
   async deleteFile(key: string): Promise<void> {

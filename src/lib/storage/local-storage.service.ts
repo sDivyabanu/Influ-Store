@@ -61,6 +61,12 @@ export class LocalStorageService implements IStorageService {
     return `/uploads/${key}`;
   }
 
+  // Files under public/uploads/ are already served statically and publicly
+  // by Next.js, so there's nothing to sign here.
+  async getSignedReadUrl(key: string): Promise<string> {
+    return this.getPublicUrl(key);
+  }
+
   async deleteFile(key: string): Promise<void> {
     if (!key) return;
     const target = path.join(UPLOADS_ROOT, key);

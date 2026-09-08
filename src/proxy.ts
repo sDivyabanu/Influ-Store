@@ -9,19 +9,8 @@ function getAuthSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-// Protected route prefixes that require an authenticated session
-const protectedRoutes = [
-  "/settings",
-  "/api/profile",
-  "/saved",
-  "/api/saved",
-  "/create-post",
-  "/create-reel",
-  "/seller",
-  "/api/seller",
-  "/admin",
-  "/api/admin",
-];
+// Public paths that do not require an authenticated session
+const publicPaths = ["/", "/login", "/register", "/signup"];
 
 // Route prefixes that require the ADMIN role, on top of authentication.
 // This is a fast UX redirect ONLY — the authoritative check is
@@ -33,7 +22,7 @@ const adminOnlyRoutes = ["/admin", "/api/admin"];
 // Auth routes where authenticated users should be redirected away
 const authRoutes = ["/login", "/register", "/signup"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
@@ -56,7 +45,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // 2. If user is NOT authenticated and tries to visit a protected route
-  if (!isAuthenticated && protectedRoutes.some((route) => pathname.startsWith(route))) {
+  const isPublic = publicPaths.includes(pathname) || pathname.startsWith("/api/auth");
+  if (!isAuthenticated && !isPublic) {
     // For API routes, return JSON 401 Unauthorized
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
