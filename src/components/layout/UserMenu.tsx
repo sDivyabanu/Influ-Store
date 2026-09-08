@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/features/auth/auth-context";
 import { Avatar } from "@/components/ui/Avatar";
-import { User, Settings, LogOut, Moon, Sun, Sparkles, Bookmark, Store, ShieldCheck } from "lucide-react";
+import { User, Settings, LogOut, Moon, Sun, Sparkles, Bookmark, Store, Package, ShieldCheck } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function UserMenu() {
@@ -94,14 +94,35 @@ export function UserMenu() {
               <span>Saved</span>
             </Link>
 
-            {user.role !== "ADMIN" && (
+            {user.role === "SELLER" && (
+              <>
+                <Link
+                  href="/seller/store"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/10 transition"
+                >
+                  <Store className="h-4 w-4 text-neutral-500" />
+                  <span>My Store</span>
+                </Link>
+                <Link
+                  href="/seller/products"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/10 transition"
+                >
+                  <Package className="h-4 w-4 text-neutral-500" />
+                  <span>My Products</span>
+                </Link>
+              </>
+            )}
+
+            {user.role !== "ADMIN" && user.role !== "SELLER" && (
               <Link
                 href="/seller/apply"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-white/10 transition"
               >
                 <Store className="h-4 w-4 text-neutral-500" />
-                <span>{user.role === "SELLER" ? "Seller Account" : "Become a Seller"}</span>
+                <span>Become a Seller</span>
               </Link>
             )}
 

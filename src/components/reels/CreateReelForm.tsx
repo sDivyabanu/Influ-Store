@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/features/toast/toast-context";
+import { useAuth } from "@/features/auth/auth-context";
 import { uploadReelMediaFile, probeVideoFile } from "@/lib/client/upload-reel-media";
+import { ProductTagSelector } from "@/components/products/ProductTagSelector";
 import {
   SUPPORTED_REEL_MIME_TYPES,
   MAX_REEL_SIZE_BYTES,
@@ -25,11 +27,13 @@ interface SelectedVideo {
 export function CreateReelForm() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
 
   const [video, setVideo] = useState<SelectedVideo | null>(null);
   const [caption, setCaption] = useState("");
+  const [productIds, setProductIds] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState("");
@@ -110,6 +114,7 @@ export function CreateReelForm() {
           duration: uploaded.duration,
           width: uploaded.width,
           height: uploaded.height,
+          productIds,
         }),
       });
       const data = await response.json();
@@ -229,6 +234,18 @@ export function CreateReelForm() {
             aria-label="Reel caption"
           />
         </Card>
+
+        {user?.role === "SELLER" && (
+          <Card className="p-6 sm:p-8 space-y-3">
+            <div>
+              <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Tag products</h2>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                Tag your own products so shoppers can find and buy what&apos;s in this reel.
+              </p>
+            </div>
+            <ProductTagSelector selectedProductIds={productIds} onChange={setProductIds} />
+          </Card>
+        )}
 
         {error && (
           <div

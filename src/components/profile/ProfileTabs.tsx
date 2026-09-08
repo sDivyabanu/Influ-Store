@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Grid, Bookmark, ShoppingBag, Sparkles, Clapperboard } from "lucide-react";
+import { Grid, Bookmark, ShoppingBag, Store, Clapperboard } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { FeedPost } from "@/types/post";
 import { ReelItem } from "@/types/reel";
+import { ProductListItem } from "@/types/product";
 import { PostGrid } from "@/components/posts/PostGrid";
 import { ReelGrid } from "@/components/reels/ReelGrid";
+import { ProductGrid } from "@/components/products/ProductGrid";
 import { Button } from "@/components/ui/Button";
 
 interface ProfileTabsProps {
@@ -17,6 +19,12 @@ interface ProfileTabsProps {
   initialCursor: string | null;
   initialReels: ReelItem[];
   initialReelsCursor: string | null;
+  /** Non-null only for approved sellers who have finished storefront setup — drives whether the Store tab appears at all. */
+  storeSlug: string | null;
+  initialStoreProducts: ProductListItem[];
+  initialStoreProductsCursor: string | null;
+  /** True only when viewing your own profile as an approved seller who hasn't set up a storefront yet — shows a setup prompt instead of hiding the tab entirely. */
+  showStoreSetupPrompt?: boolean;
 }
 
 export function ProfileTabs({
@@ -26,8 +34,14 @@ export function ProfileTabs({
   initialCursor,
   initialReels,
   initialReelsCursor,
+  storeSlug,
+  initialStoreProducts,
+  initialStoreProductsCursor,
+  showStoreSetupPrompt = false,
 }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved" | "shop">("posts");
+  // Non-sellers never see a fake store tab (Phase 6 spec section 27).
+  const showStoreTab = Boolean(storeSlug) || showStoreSetupPrompt;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 lg:px-10">
@@ -78,19 +92,21 @@ export function ProfileTabs({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("shop")}
-            className={cn(
-              "flex items-center gap-2 border-b-2 py-4 text-xs font-semibold uppercase tracking-wider transition-colors",
-              activeTab === "shop"
-                ? "border-fuchsia-500 text-neutral-900 dark:text-white"
-                : "border-transparent text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-            )}
-          >
-            <ShoppingBag className="h-4 w-4" />
-            <span>Store</span>
-          </button>
+          {showStoreTab && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("shop")}
+              className={cn(
+                "flex items-center gap-2 border-b-2 py-4 text-xs font-semibold uppercase tracking-wider transition-colors",
+                activeTab === "shop"
+                  ? "border-fuchsia-500 text-neutral-900 dark:text-white"
+                  : "border-transparent text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+              )}
+            >
+              <ShoppingBag className="h-4 w-4" />
+              <span>Store</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -142,18 +158,43 @@ export function ProfileTabs({
           </div>
         )}
 
-        {activeTab === "shop" && (
-          <div className="mx-auto max-w-sm space-y-4 py-8 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
-              <Sparkles className="h-7 w-7" />
+        {activeTab === "shop" && showStoreTab && (
+          storeSlug ? (
+            <div className="space-y-6">
+              <div className="flex justify-end">
+                <Link href={`/store/${storeSlug}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Store className="h-3.5 w-3.5" /> Visit full store
+                  </Button>
+                </Link>
+              </div>
+              <ProductGrid
+                fetchBaseUrl={`/api/products?sellerSlug=${encodeURIComponent(storeSlug)}`}
+                initialProducts={initialStoreProducts}
+                initialCursor={initialStoreProductsCursor}
+                emptyMessage={
+                  isOwnProfile
+                    ? "Add your first product to start selling."
+                    : "This creator hasn't listed any products yet."
+                }
+              />
             </div>
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-              Influ-Store Marketplace
-            </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Creator product showcases and tagged affiliate items will be launched in upcoming phases.
-            </p>
-          </div>
+          ) : (
+            <div className="mx-auto max-w-sm space-y-4 py-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 text-neutral-400">
+                <Store className="h-7 w-7" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                Set up your storefront
+              </h3>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                Add a store name, logo, and banner so shoppers can find and buy your products.
+              </p>
+              <Link href="/seller/store">
+                <Button size="sm">Set up store</Button>
+              </Link>
+            </div>
+          )
         )}
       </div>
     </div>

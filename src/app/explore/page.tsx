@@ -7,12 +7,14 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import { UserCard } from "@/components/users/UserCard";
+import { ProductCard } from "@/components/products/ProductCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { FeedPost } from "@/types/post";
 import { ReelItem } from "@/types/reel";
 import { UserCardItem } from "@/types/follow";
+import { ProductListItem } from "@/types/product";
 import { HashtagItem } from "@/types/search";
-import { Search, Sparkles, TrendingUp, Compass, ArrowRight, Clapperboard, Play } from "lucide-react";
+import { Search, Sparkles, TrendingUp, Compass, ArrowRight, Clapperboard, Play, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const categories = [
@@ -36,25 +38,28 @@ export default function ExplorePage() {
   const [trendingTags, setTrendingTags] = useState<HashtagItem[]>([]);
   const [suggestedCreators, setSuggestedCreators] = useState<UserCardItem[]>([]);
   const [trendingReels, setTrendingReels] = useState<ReelItem[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<ProductListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial load: explore posts, trending hashtags, suggested creators, and trending reels
+  // Initial load: explore posts, trending hashtags, suggested creators, trending reels, and trending products
   useEffect(() => {
     async function loadExploreData() {
       setIsLoading(true);
       try {
-        const [postsRes, tagsRes, creatorsRes, reelsRes] = await Promise.all([
+        const [postsRes, tagsRes, creatorsRes, reelsRes, productsRes] = await Promise.all([
           fetch("/api/explore?limit=16"),
           fetch("/api/hashtags/trending?limit=6"),
           fetch("/api/suggestions?limit=4"),
           fetch("/api/explore/reels?limit=8"),
+          fetch("/api/explore/products?limit=8"),
         ]);
 
-        const [postsData, tagsData, creatorsData, reelsData] = await Promise.all([
+        const [postsData, tagsData, creatorsData, reelsData, productsData] = await Promise.all([
           postsRes.json(),
           tagsRes.json(),
           creatorsRes.json(),
           reelsRes.json(),
+          productsRes.json(),
         ]);
 
         if (postsRes.ok && postsData.success) {
@@ -69,6 +74,9 @@ export default function ExplorePage() {
         }
         if (reelsRes.ok && reelsData.success) {
           setTrendingReels(reelsData.reels);
+        }
+        if (productsRes.ok && productsData.success) {
+          setTrendingProducts(productsData.products);
         }
       } catch {
         // Fallback gracefully
@@ -207,6 +215,37 @@ export default function ExplorePage() {
                       </p>
                     </div>
                   </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TRENDING PRODUCTS ROW */}
+        {trendingProducts.length > 0 && (
+          <section className="px-6 pt-10 lg:px-10">
+            <div className="mx-auto max-w-7xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-fuchsia-500" />
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">
+                    Trending Products
+                  </h2>
+                </div>
+
+                <Link
+                  href="/products"
+                  className="text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 hover:underline"
+                >
+                  Shop all →
+                </Link>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-1 no-scrollbar">
+                {trendingProducts.map((product) => (
+                  <div key={product.id} className="w-40 shrink-0 sm:w-44">
+                    <ProductCard product={product} />
+                  </div>
                 ))}
               </div>
             </div>

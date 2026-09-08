@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/features/toast/toast-context";
+import { useAuth } from "@/features/auth/auth-context";
 import { uploadPostMediaFile } from "@/lib/client/upload-post-media";
+import { ProductTagSelector } from "@/components/products/ProductTagSelector";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   MAX_IMAGE_SIZE_BYTES,
@@ -31,10 +33,12 @@ function makeId(): string {
 export function CreatePostForm() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [caption, setCaption] = useState("");
+  const [productIds, setProductIds] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
 
@@ -119,6 +123,7 @@ export function CreatePostForm() {
             width: item.width,
             height: item.height,
           })),
+          productIds,
         }),
       });
       const data = await response.json();
@@ -265,6 +270,18 @@ export function CreatePostForm() {
             aria-label="Post caption"
           />
         </Card>
+
+        {user?.role === "SELLER" && (
+          <Card className="p-6 sm:p-8 space-y-3">
+            <div>
+              <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Tag products</h2>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                Tag your own products so shoppers can find and buy what&apos;s in this post.
+              </p>
+            </div>
+            <ProductTagSelector selectedProductIds={productIds} onChange={setProductIds} />
+          </Card>
+        )}
 
         {error && (
           <div

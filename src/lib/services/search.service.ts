@@ -2,9 +2,11 @@ import { prisma } from "@/lib/db/prisma";
 import { CursorPage, FeedPost } from "@/types/post";
 import { ReelItem } from "@/types/reel";
 import { UserCardItem } from "@/types/follow";
+import { ProductListItem } from "@/types/product";
 import { HashtagItem, SearchResults, SearchType } from "@/types/search";
 import { postInclude, serializePost } from "./post-shared";
 import { reelInclude, serializeReel, getFollowingAuthorIds } from "./reel-shared";
+import { listProducts } from "./product.service";
 
 /**
  * Searches users by username or displayName using case-insensitive partial match.
@@ -205,7 +207,24 @@ export async function searchHashtags(
 }
 
 /**
- * Executes a unified global search across users, posts, reels, and hashtags.
+ * Searches products by name with case-insensitive partial match — thin
+ * wrapper over the public marketplace listing (search filter), scoped
+ * to ACTIVE products only like every other public product read.
+ */
+export async function searchProducts(
+  query: string,
+  cursor?: string | null,
+  limit: number = 20
+): Promise<CursorPage<ProductListItem>> {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) {
+    return { items: [], nextCursor: null };
+  }
+  return listProducts({ search: cleanQuery }, cursor, limit);
+}
+
+/**
+ * Executes a unified global search across users, posts, reels, hashtags, and products.
  */
 export async function globalSearch(
   query: string,
@@ -219,6 +238,7 @@ export async function globalSearch(
     posts: { items: [], nextCursor: null },
     reels: { items: [], nextCursor: null },
     hashtags: { items: [], nextCursor: null },
+    products: { items: [], nextCursor: null },
   } satisfies SearchResults;
 
   if (type === "users") {
@@ -237,13 +257,18 @@ export async function globalSearch(
     return { ...empty, hashtags: await searchHashtags(query, cursor, limit) };
   }
 
+  if (type === "products") {
+    return { ...empty, products: await searchProducts(query, cursor, limit) };
+  }
+
   // Type "all": Fetch top matches for all categories in parallel
-  const [users, posts, reels, hashtags] = await Promise.all([
+  const [users, posts, reels, hashtags, products] = await Promise.all([
     searchUsers(query, currentUserId, undefined, 5),
     searchPosts(query, currentUserId, undefined, 10),
     searchReels(query, currentUserId, undefined, 10),
     searchHashtags(query, undefined, 5),
+    searchProducts(query, undefined, 5),
   ]);
 
-  return { users, posts, reels, hashtags };
+  return { users, posts, reels, hashtags, products };
 }

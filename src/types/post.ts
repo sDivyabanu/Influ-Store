@@ -1,4 +1,5 @@
 import { MediaType } from "@prisma/client";
+import { ProductTagPreview } from "@/types/product";
 
 export interface PostAuthor {
   id: string;
@@ -28,6 +29,7 @@ export interface FeedPost {
   likedByMe: boolean;
   savedByMe: boolean;
   isOwner: boolean;
+  productTags: ProductTagPreview[];
 }
 
 export interface CommentItem {

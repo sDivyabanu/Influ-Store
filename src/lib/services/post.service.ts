@@ -2,11 +2,12 @@ import { prisma } from "@/lib/db/prisma";
 import { getStorageService } from "@/lib/storage";
 import { NotFoundError, ForbiddenError } from "@/lib/errors";
 import { PROFILE_GRID_PAGE_SIZE } from "@/lib/constants/post";
-import { CreatePostInput } from "@/lib/validations/post.schema";
+import { CreatePostInput, UpdatePostInput } from "@/lib/validations/post.schema";
 import { CursorPage, FeedPost } from "@/types/post";
 import { postInclude, serializePost } from "./post-shared";
 import { assertMediaKeysOwnedByUser } from "./media-upload.service";
 import { syncPostHashtags } from "./hashtag.service";
+import { assertProductsTaggableByUser } from "./product-tag.service";
 
 export async function getPostById(
   postId: string,
@@ -30,6 +31,11 @@ export async function createPost(
     input.media.map((m) => m.key),
     authorId
   );
+
+  const productIds = input.productIds ?? [];
+  if (productIds.length > 0) {
+    await assertProductsTaggableByUser(authorId, productIds);
+  }
 
   const storage = getStorageService();
 
@@ -55,6 +61,12 @@ export async function createPost(
     // Sync hashtags within transaction
     await syncPostHashtags(tx, created.id, input.caption?.trim() || null);
 
+    if (productIds.length > 0) {
+      await tx.postProductTag.createMany({
+        data: productIds.map((productId) => ({ postId: created.id, productId })),
+      });
+    }
+
     return created.id;
   });
 
@@ -63,10 +75,10 @@ export async function createPost(
   return post;
 }
 
-export async function updatePostCaption(
+export async function updatePost(
   postId: string,
   userId: string,
-  caption: string | null
+  input: UpdatePostInput
 ): Promise<FeedPost> {
   const existing = await prisma.post.findUnique({
     where: { id: postId },
@@ -77,16 +89,26 @@ export async function updatePostCaption(
     throw new ForbiddenError("You can only edit your own posts.");
   }
 
-  const trimmedCaption = caption?.trim() || null;
+  if (input.productIds !== undefined) {
+    await assertProductsTaggableByUser(userId, input.productIds);
+  }
+
+  const trimmedCaption = input.caption !== undefined ? input.caption?.trim() || null : undefined;
 
   await prisma.$transaction(async (tx) => {
-    await tx.post.update({
-      where: { id: postId },
-      data: { caption: trimmedCaption },
-    });
+    if (trimmedCaption !== undefined) {
+      await tx.post.update({ where: { id: postId }, data: { caption: trimmedCaption } });
+      await syncPostHashtags(tx, postId, trimmedCaption);
+    }
 
-    // Synchronize hashtags with new caption
-    await syncPostHashtags(tx, postId, trimmedCaption);
+    if (input.productIds !== undefined) {
+      await tx.postProductTag.deleteMany({ where: { postId } });
+      if (input.productIds.length > 0) {
+        await tx.postProductTag.createMany({
+          data: input.productIds.map((productId) => ({ postId, productId })),
+        });
+      }
+    }
   });
 
   const post = await getPostById(postId, userId);

@@ -10,7 +10,14 @@ function getAuthSecret(): Uint8Array {
 }
 
 // Public paths that do not require an authenticated session
-const publicPaths = ["/", "/login", "/register", "/signup"];
+const publicPaths = ["/", "/login", "/register", "/signup", "/products"];
+
+// Public route prefixes (dynamic pages/APIs) that do not require an
+// authenticated session — the marketplace, storefronts, and product
+// detail are public browsing surfaces, same as the landing page.
+// Their route handlers (src/app/api/products/**, src/app/api/stores/**)
+// have no auth checks of their own by design, so proxy must allow them.
+const publicPathPrefixes = ["/product/", "/store/", "/api/products", "/api/stores"];
 
 // Route prefixes that require the ADMIN role, on top of authentication.
 // This is a fast UX redirect ONLY — the authoritative check is
@@ -45,7 +52,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // 2. If user is NOT authenticated and tries to visit a protected route
-  const isPublic = publicPaths.includes(pathname) || pathname.startsWith("/api/auth");
+  const isPublic =
+    publicPaths.includes(pathname) ||
+    pathname.startsWith("/api/auth") ||
+    publicPathPrefixes.some((prefix) => pathname.startsWith(prefix));
   if (!isAuthenticated && !isPublic) {
     // For API routes, return JSON 401 Unauthorized
     if (pathname.startsWith("/api/")) {
