@@ -4,6 +4,7 @@ import { toMoney } from "@/lib/utils/money";
 import { ReelItem } from "@/types/reel";
 import { ProductTagPreview } from "@/types/product";
 import { toPostAuthor } from "./post-shared";
+import { getStorageService } from "@/lib/storage";
 
 /**
  * Shared Prisma include shape + serializer for reels, mirroring
@@ -63,16 +64,28 @@ function toProductTagPreviews(
   }));
 }
 
-export function serializeReel(
+/**
+ * The bucket denies public reads, so the mediaUrl/thumbnailUrl stored at
+ * upload time are not browser-accessible — every read path must re-sign
+ * them here rather than trusting the persisted value (mirrors
+ * post-shared.ts's serializePost).
+ */
+export async function serializeReel(
   reel: ReelWithRelations,
   currentUserId: string | null,
   followingAuthorIds?: Set<string>
-): ReelItem {
+): Promise<ReelItem> {
+  const storage = getStorageService();
+  const [mediaUrl, thumbnailUrl] = await Promise.all([
+    storage.getSignedReadUrl(reel.mediaKey),
+    reel.thumbnailKey ? storage.getSignedReadUrl(reel.thumbnailKey) : Promise.resolve(reel.thumbnailUrl),
+  ]);
+
   return {
     id: reel.id,
     caption: reel.caption,
-    mediaUrl: reel.mediaUrl,
-    thumbnailUrl: reel.thumbnailUrl,
+    mediaUrl,
+    thumbnailUrl,
     duration: reel.duration,
     width: reel.width,
     height: reel.height,

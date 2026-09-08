@@ -60,7 +60,7 @@ export async function getExplorePosts(
   const page = hasMore ? posts.slice(0, limit) : posts;
 
   return {
-    items: page.map((p) => serializePost(p, currentUserId)),
+    items: await Promise.all(page.map((p) => serializePost(p, currentUserId))),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }
@@ -119,7 +119,7 @@ export async function getExploreReels(
   const followingAuthorIds = await getFollowingAuthorIds(currentUserId, authorIds);
 
   return {
-    items: page.map((r) => serializeReel(r, currentUserId, followingAuthorIds)),
+    items: await Promise.all(page.map((r) => serializeReel(r, currentUserId, followingAuthorIds))),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }

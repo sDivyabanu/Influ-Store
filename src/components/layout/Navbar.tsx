@@ -34,7 +34,7 @@ export function Navbar() {
     { href: "/explore", label: "Explore", icon: Compass, badge: null },
     { href: "/search", label: "Search", icon: Search, badge: null },
     { href: "/products", label: "Shop", icon: ShoppingBag, badge: null },
-    { href: "/notifications", label: "Notifications", icon: Bell, badge: "Soon" },
+    { href: "/notifications", label: "Notifications", icon: Bell, badge: null },
   ];
   const createMenuIndex = 5; // after "Shop", before "Notifications"
 
@@ -51,7 +51,7 @@ export function Navbar() {
 
         {/* DESKTOP NAVIGATION LINKS */}
         <div className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link, index) => {
+          {isAuthenticated && navLinks.map((link, index) => {
             const isActive = isNavLinkActive(pathname, link.href);
             return (
               <React.Fragment key={link.href}>
@@ -149,7 +149,7 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 px-6 py-6 backdrop-blur-2xl md:hidden animate-in slide-in-from-top duration-200">
           <div className="flex flex-col gap-2">
-            {navLinks.map((link) => {
+            {isAuthenticated && navLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link

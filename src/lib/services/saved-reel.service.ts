@@ -49,7 +49,7 @@ export async function listSavedReels(
   const followingAuthorIds = await getFollowingAuthorIds(userId, authorIds);
 
   return {
-    items: page.map((s) => serializeReel(s.reel, userId, followingAuthorIds)),
+    items: await Promise.all(page.map((s) => serializeReel(s.reel, userId, followingAuthorIds))),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }

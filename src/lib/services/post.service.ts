@@ -153,7 +153,7 @@ export async function listUserPosts(
   const page = hasMore ? posts.slice(0, limit) : posts;
 
   return {
-    items: page.map((p) => serializePost(p, currentUserId)),
+    items: await Promise.all(page.map((p) => serializePost(p, currentUserId))),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }
