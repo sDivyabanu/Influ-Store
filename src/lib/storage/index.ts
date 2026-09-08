@@ -1,6 +1,9 @@
 import { IStorageService } from "./storage-service.interface";
 import { S3StorageService } from "./s3-storage.service";
 import { LocalStorageService } from "./local-storage.service";
+import { IPrivateDocumentStorage } from "./private-document-storage.interface";
+import { S3PrivateDocumentStorageService } from "./s3-private-document-storage.service";
+import { LocalPrivateDocumentStorageService } from "./local-private-document-storage.service";
 
 let storageInstance: IStorageService | null = null;
 
@@ -20,6 +23,27 @@ export function getStorageService(): IStorageService {
   return storageInstance;
 }
 
+let privateDocumentStorageInstance: IPrivateDocumentStorage | null = null;
+
+/**
+ * Returns the active PRIVATE document storage backend (seller
+ * verification documents). Same S3-preferred / local-fallback selection
+ * as getStorageService(), but this backend never produces public URLs —
+ * see private-document-storage.interface.ts.
+ */
+export function getPrivateDocumentStorageService(): IPrivateDocumentStorage {
+  if (!privateDocumentStorageInstance) {
+    const s3 = new S3PrivateDocumentStorageService();
+    privateDocumentStorageInstance = s3.isConfigured()
+      ? s3
+      : new LocalPrivateDocumentStorageService();
+  }
+  return privateDocumentStorageInstance;
+}
+
 export * from "./storage-service.interface";
 export * from "./s3-storage.service";
 export * from "./local-storage.service";
+export * from "./private-document-storage.interface";
+export * from "./s3-private-document-storage.service";
+export * from "./local-private-document-storage.service";
