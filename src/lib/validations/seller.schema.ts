@@ -15,26 +15,28 @@ const phoneRegex = /^[+]?[0-9()\-.\s]{7,20}$/;
  * sellerApplicationSubmitSchema, applied server-side against the
  * currently stored row right before transitioning to PENDING.
  */
+// Draft PATCHes always send the full FormFields object, including empty
+// strings for steps the user hasn't reached yet — treat "" as "not
+// provided" so an untouched later-step field never fails an earlier step.
+const optionalDraftField = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((val) => (val === "" ? undefined : val), schema.optional());
+
 export const sellerApplicationDraftSchema = z.object({
-  businessName: z.string().trim().min(1).max(BUSINESS_NAME_MAX_LENGTH).optional(),
-  businessType: z.string().trim().min(1).max(BUSINESS_TYPE_MAX_LENGTH).optional(),
+  businessName: optionalDraftField(z.string().trim().min(1).max(BUSINESS_NAME_MAX_LENGTH)),
+  businessType: optionalDraftField(z.string().trim().min(1).max(BUSINESS_TYPE_MAX_LENGTH)),
   description: z
     .string()
     .trim()
     .max(APPLICATION_DESCRIPTION_MAX_LENGTH)
     .optional()
     .nullable(),
-  contactEmail: z.string().trim().email("Please provide a valid email address").optional(),
-  contactPhone: z
-    .string()
-    .trim()
-    .regex(phoneRegex, "Please provide a valid phone number")
-    .optional(),
-  addressLine: z.string().trim().min(1).max(200).optional(),
-  city: z.string().trim().min(1).max(100).optional(),
-  state: z.string().trim().min(1).max(100).optional(),
-  country: z.string().trim().min(1).max(100).optional(),
-  postalCode: z.string().trim().min(1).max(20).optional(),
+  contactEmail: optionalDraftField(z.string().trim().email("Please provide a valid email address")),
+  contactPhone: optionalDraftField(z.string().trim().regex(phoneRegex, "Please provide a valid phone number")),
+  addressLine: optionalDraftField(z.string().trim().min(1).max(200)),
+  city: optionalDraftField(z.string().trim().min(1).max(100)),
+  state: optionalDraftField(z.string().trim().min(1).max(100)),
+  country: optionalDraftField(z.string().trim().min(1).max(100)),
+  postalCode: optionalDraftField(z.string().trim().min(1).max(20)),
 });
 export type SellerApplicationDraftInput = z.infer<typeof sellerApplicationDraftSchema>;
 
